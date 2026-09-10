@@ -2,10 +2,10 @@
     --paper: #ECEEF0;
     --card: #FFFFFF;
     --ink: #16191D;
-    --muted: #6C727A;
+    --muted: #43464B;
     --rule: #DBDEE3;
-    --alert: #A8261E;
-    --shift: #85570A;
+    --alert: #931812;
+    --shift: #634000;
     --accent: #0F6E5C;
 }
 
@@ -170,7 +170,7 @@ body {
 
 .lesson--cancelled .lesson__time,
 .lesson--cancelled .lesson__meta {
-    opacity: 0.6;
+    color: var(--muted);
 }
 
 .lesson--cancelled .lesson__flag {
