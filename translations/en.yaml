@@ -20,14 +20,19 @@ lesson:
     substitution: 'Substitution'
     substitution_for: 'Substitution for {teachers}'
 
-footer:
+header:
+    menu: 'Menu'
     updated: 'Fetched at {time}'
     today: 'Back to today'
-    jump: 'Jump to another day'
-    go: 'Show'
     week_previous: 'Last week'
     week_current: 'This week'
     week_next: 'Next week'
+
+footer:
+    tagline: 'Built with {heart} for open source'
+    source: 'Source on GitHub'
+    author: 'by {name}'
+    license: 'MIT licensed'
 
 weekdays:
     1: Monday

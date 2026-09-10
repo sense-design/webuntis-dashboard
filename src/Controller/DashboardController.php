@@ -116,7 +116,7 @@ final class DashboardController extends AbstractController
     }
 
     /**
-     * Day picker for the footer: the previous, current and coming week, one
+     * Day picker for the header: the previous, current and coming week, one
      * entry per school day (Mon-Fri), grouped by week. The displayed day always
      * falls in the middle group, so the picker can page a week at a time in
      * either direction; a weekend date reached through `?day=` is kept so it
@@ -130,7 +130,7 @@ final class DashboardController extends AbstractController
         $weekStart = $day->modify('monday this week');
 
         $groups = [];
-        foreach (['footer.week_previous' => -7, 'footer.week_current' => 0, 'footer.week_next' => 7] as $labelKey => $offset) {
+        foreach (['header.week_previous' => -7, 'header.week_current' => 0, 'header.week_next' => 7] as $labelKey => $offset) {
             $start = $weekStart->modify(sprintf('%+d days', $offset));
             $days = [];
             for ($i = 0; $i < 7; ++$i) {

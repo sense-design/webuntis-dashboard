@@ -89,8 +89,8 @@ and should be `chmod 600` and owned by the PHP-FPM user.
 | `timezone` | `Europe/Berlin` | Decides which day "today" is |
 | `locale` | `en` | UI language, `en` or `de` |
 
-`?day=tomorrow` or `?day=2026-09-14` shows another day. The footer links to
-tomorrow, which is the useful one the evening before.
+`?day=tomorrow` or `?day=2026-09-14` shows another day. The header menu has a
+day picker covering the previous, current and coming week.
 
 The UI ships in English and German, set app-wide by `locale`. Strings live in
 `translations/en.yaml` and `translations/de.yaml`.

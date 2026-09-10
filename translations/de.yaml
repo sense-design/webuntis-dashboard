@@ -20,14 +20,19 @@ lesson:
     substitution: 'Vertretung'
     substitution_for: 'Vertretung für {teachers}'
 
-footer:
+header:
+    menu: 'Menü'
     updated: 'Abgerufen um {time}'
     today: 'Zurück zu heute'
-    jump: 'Zu einem anderen Tag springen'
-    go: 'Anzeigen'
     week_previous: 'Letzte Woche'
     week_current: 'Diese Woche'
     week_next: 'Nächste Woche'
+
+footer:
+    tagline: 'Mit {heart} für Open Source gebaut'
+    source: 'Quellcode auf GitHub'
+    author: 'von {name}'
+    license: 'MIT-Lizenz'
 
 weekdays:
     1: Montag

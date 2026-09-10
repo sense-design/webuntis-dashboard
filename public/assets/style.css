@@ -37,11 +37,13 @@ body {
 /* Header --------------------------------------------------------------- */
 
 .day {
+    position: relative;
     margin-bottom: 2rem;
 }
 
 .day h1 {
     margin: 0;
+    padding-right: 3.5rem;
     font-size: clamp(1.75rem, 5vw, 2.5rem);
     font-weight: 650;
     letter-spacing: -0.02em;
@@ -49,6 +51,7 @@ body {
 
 .day__status {
     margin: 0.35rem 0 0;
+    padding-right: 3.5rem;
     font-size: 1.0625rem;
     color: var(--muted);
 }
@@ -194,49 +197,190 @@ body {
     color: var(--alert);
 }
 
-/* Footer --------------------------------------------------------------- */
+/* Header menu ------------------------------------------------------------- */
 
-.foot {
+.menu {
+    position: static;
+}
+
+.menu__toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 50;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
     align-items: center;
-    gap: 0.75rem 1rem;
-    margin-top: 1.75rem;
-    font-size: 0.875rem;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.menu__toggle::-webkit-details-marker {
+    display: none;
+}
+
+.menu__bars,
+.menu__bars::before,
+.menu__bars::after {
+    content: "";
+    display: block;
+    width: 1.15rem;
+    height: 2px;
+    background: var(--ink);
+    border-radius: 1px;
+}
+
+.menu__bars {
+    position: relative;
+}
+
+.menu__bars::before {
+    position: absolute;
+    left: 0;
+    top: -6px;
+}
+
+.menu__bars::after {
+    position: absolute;
+    left: 0;
+    top: 6px;
+}
+
+.menu[open] .menu__toggle {
+    position: fixed;
+    top: 2.5rem;
+    right: 1.25rem;
+}
+
+.menu[open] .menu__bars {
+    background: transparent;
+}
+
+.menu[open] .menu__bars::before {
+    top: 0;
+    transform: rotate(45deg);
+}
+
+.menu[open] .menu__bars::after {
+    top: 0;
+    transform: rotate(-45deg);
+}
+
+.menu__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(22, 25, 29, 0.45);
+}
+
+.menu__panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 40;
+    width: min(22rem, 82vw);
+    height: 100%;
+    max-height: 100dvh;
+    overflow-y: auto;
+    padding: 4.25rem 1.5rem 2rem;
+    background: var(--card);
+    border-left: 1px solid var(--rule);
+    box-shadow: -8px 0 24px rgba(22, 25, 29, 0.12);
+}
+
+.menu__group {
+    margin: 1.25rem 0 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--muted);
 }
 
-.foot a {
+.menu__group:first-child {
+    margin-top: 0;
+}
+
+.menu__days {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.menu__day {
+    display: block;
+    padding: 0.55rem 0.6rem;
+    border-radius: 4px;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.menu__day:hover,
+.menu__day:focus-visible {
+    background: var(--paper);
+}
+
+.menu__day--current {
+    font-weight: 650;
+    color: var(--accent);
+}
+
+.menu__today {
+    display: inline-block;
+    margin-top: 1.5rem;
+    color: var(--ink);
+    text-underline-offset: 3px;
+}
+
+.menu__meta {
+    margin: 1rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--muted);
+}
+
+/* Site footer ----------------------------------------------------------- */
+
+.site-foot {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--muted);
+    text-align: center;
+}
+
+.site-foot p {
+    margin: 0;
+}
+
+.site-foot__heart {
+    color: var(--alert);
+}
+
+.site-foot__meta {
+    margin-top: 0.35rem;
+}
+
+.site-foot a {
     color: var(--ink);
     text-decoration-color: var(--rule);
     text-underline-offset: 3px;
 }
 
-.foot a:focus-visible,
-.foot a:hover {
+.site-foot a:hover,
+.site-foot a:focus-visible {
     text-decoration-color: currentColor;
 }
 
-.foot__nav {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.foot__nav select,
-.foot__nav button {
-    font: inherit;
-    color: var(--ink);
-    background: var(--card);
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    padding: 0.25rem 0.5rem;
-}
-
-.foot__nav button {
-    cursor: pointer;
+.site-foot__meta span {
+    margin: 0 0.5rem;
+    color: var(--rule);
 }
 
 :focus-visible {
@@ -252,5 +396,15 @@ body {
     .lesson {
         grid-template-columns: 3.25rem 1fr;
         gap: 0.85rem;
+    }
+
+    .menu[open] .menu__toggle {
+        top: 1.75rem;
+        right: 1rem;
+    }
+
+    .menu__panel {
+        width: 100%;
+        padding-top: 3.75rem;
     }
 }
