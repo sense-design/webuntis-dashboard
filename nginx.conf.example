@@ -66,6 +66,14 @@ server {
         try_files $uri =404;
     }
 
+    # Home screen / favicon images live at the document root. The manifest
+    # itself is served by the app (a localised route), not from here.
+    location ~* ^/(?:apple-touch-icon|icon(?:-\d+)?|favicon)\.(?:png|svg|ico)$ {
+        expires 30d;
+        access_log off;
+        try_files $uri =404;
+    }
+
     # Never serve dotfiles or the config directory, whatever the document root.
     location ~ /\. {
         deny all;

@@ -102,6 +102,23 @@ timetable are read alongside it to show the same long name the timetable does
 The UI ships in English and German, set app-wide by `locale`. Strings live in
 `translations/en.yaml` and `translations/de.yaml`.
 
+## Home screen
+
+The page carries a web app manifest (`/manifest.webmanifest`, a localised route)
+and the Apple meta tags, so "Add to Home Screen" on a phone gives it an icon and
+opens it without browser chrome. The icon is `public/icon.svg`; the PNG and ICO
+sizes next to it are generated from it:
+
+```bash
+cd public
+magick -background '#0F6E5C' -density 400 icon.svg -flatten -resize 180x180 -depth 8 -strip apple-touch-icon.png
+magick -background '#0F6E5C' -density 400 icon.svg -flatten -resize 192x192 -depth 8 -strip icon-192.png
+magick -background '#0F6E5C' -density 400 icon.svg -flatten -resize 512x512 -depth 8 -strip icon-512.png
+magick -background '#0F6E5C' -density 400 icon.svg -flatten -strip -define icon:auto-resize=64,48,32,16 favicon.ico
+```
+
+The home screen label comes from `app.name` in the translation catalogues.
+
 ## Behaviour worth knowing
 
 - Adjacent periods of the same lesson are merged, so a double period is one
@@ -129,12 +146,13 @@ src/Untis/ConfigLoader.php      Reads config/untis.yaml
 src/Untis/TimetableProvider.php Session reuse per account, caching, error isolation
 src/Untis/Lesson.php            One timetable block
 src/Untis/Homework.php          One outstanding homework assignment
-src/Controller/DashboardController.php  Dashboard page and the /setup helper
+src/Controller/DashboardController.php  Dashboard, homework, manifest, /setup helper
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function
 translations/{en,de}.yaml      UI strings, English and German
 templates/dashboard.html.twig   The page
 public/assets/style.css         The styles
+public/icon.svg                 Home screen / favicon source (PNGs generated from it)
 ```
 
 ## Author

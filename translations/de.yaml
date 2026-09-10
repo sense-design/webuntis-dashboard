@@ -3,6 +3,10 @@
 
 title: 'Stundenplan {day}'
 
+app:
+    name: 'WebUntis-Dashboard'
+    description: 'Stundenplan und Hausaufgaben auf einen Blick'
+
 date:
     long: '{weekday}, {day}. {month}'
     short: '{weekday}, {day}.{month}.{year}'

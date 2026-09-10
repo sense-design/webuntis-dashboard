@@ -111,6 +111,33 @@ final class DashboardController extends AbstractController
     }
 
     /**
+     * Web app manifest, so the dashboard can be added to a phone home screen
+     * with its own icon and open without browser chrome. The name is localised,
+     * hence a controller rather than a static file. The icons are built from
+     * public/icon.svg (see README).
+     */
+    #[Route('/manifest.webmanifest', name: 'manifest', methods: ['GET'])]
+    public function manifest(): JsonResponse
+    {
+        return new JsonResponse([
+            'name' => $this->translator->trans('app.name'),
+            'short_name' => $this->translator->trans('app.name'),
+            'description' => $this->translator->trans('app.description'),
+            'lang' => $this->translator->locale(),
+            'start_url' => '/',
+            'scope' => '/',
+            'display' => 'standalone',
+            'background_color' => '#ECEEF0',
+            'theme_color' => '#ECEEF0',
+            'icons' => [
+                ['src' => '/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png'],
+                ['src' => '/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png'],
+                ['src' => '/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+            ],
+        ], Response::HTTP_OK, ['Content-Type' => 'application/manifest+json']);
+    }
+
+    /**
      * One-off helper for filling in the config: shows which element the account
      * itself is and which children are linked to it.
      *

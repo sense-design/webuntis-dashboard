@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>WebUntis Dashboard</title>
+  <rect width="512" height="512" fill="#0F6E5C"/>
+  <g fill="#ffffff">
+    <circle cx="176" cy="150" r="19"/>
+    <rect x="214" y="134" width="138" height="32" rx="16"/>
+    <circle cx="176" cy="220" r="19"/>
+    <rect x="214" y="204" width="90" height="32" rx="16"/>
+    <circle cx="176" cy="290" r="19"/>
+    <rect x="214" y="274" width="118" height="32" rx="16"/>
+  </g>
+  <g fill="#ffffff" fill-opacity="0.5">
+    <circle cx="176" cy="360" r="19"/>
+    <rect x="214" y="344" width="66" height="32" rx="16"/>
+  </g>
+</svg>

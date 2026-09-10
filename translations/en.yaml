@@ -3,6 +3,10 @@
 
 title: 'Timetable {day}'
 
+app:
+    name: 'WebUntis Dashboard'
+    description: 'Timetable and homework at a glance'
+
 date:
     long: '{weekday}, {day} {month}'
     short: '{weekday}, {year}-{month}-{day}'
