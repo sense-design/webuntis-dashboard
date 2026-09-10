@@ -7,6 +7,12 @@ on today, and what changed.
 Symfony 7, PHP-FPM, nginx. No database, no queue, no build step. The only state
 is a filesystem cache under `var/`.
 
+| Timetable | Homework |
+| --- | --- |
+| ![Timetable view](docs/timetable.png) | ![Homework view](docs/homework.png) |
+
+<sub>Screenshots use made-up names and homework.</sub>
+
 ## How it works
 
 WebUntis exposes the JSON-RPC endpoints that the official mobile app uses.
