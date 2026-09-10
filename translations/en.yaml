@@ -5,6 +5,7 @@ title: 'Timetable {day}'
 
 date:
     long: '{weekday}, {day} {month}'
+    short: '{weekday}, {year}-{month}-{day}'
 
 status:
     none: 'Everything is on schedule.'
@@ -21,14 +22,11 @@ lesson:
     substitution_for: 'Substitution for {teachers}'
 
 header:
-    menu: 'Menu'
-    updated: 'Fetched at {time}'
-    today: 'Back to today'
-    week_previous: 'Last week'
-    week_current: 'This week'
-    week_next: 'Next week'
+    pager: 'Change day'
 
 footer:
+    updated: 'Fetched at {time}'
+    today: 'Back to today'
     tagline: 'Built with {heart} for open source'
     source: 'Source on GitHub'
     author: 'by {name}'
@@ -42,6 +40,15 @@ weekdays:
     5: Friday
     6: Saturday
     7: Sunday
+
+weekdays_short:
+    1: Mon
+    2: Tue
+    3: Wed
+    4: Thu
+    5: Fri
+    6: Sat
+    7: Sun
 
 months:
     1: January

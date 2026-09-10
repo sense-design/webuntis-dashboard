@@ -6,37 +6,11 @@
     {% if refresh_seconds > 0 %}<meta http-equiv="refresh" content="{{ refresh_seconds }}">{% endif %}
     <title>{{ t('title', {day: day_label}) }}</title>
     <link rel="stylesheet" href="{{ asset('assets/style.css') }}">
-    <script src="{{ asset('assets/menu.js') }}" defer></script>
 </head>
 <body>
 <main class="dashboard">
 
     <header class="day">
-        <details class="menu" id="menu">
-            <summary class="menu__toggle" aria-label="{{ t('header.menu') }}">
-                <span class="menu__bars" aria-hidden="true"></span>
-            </summary>
-            <div class="menu__scrim"></div>
-            <nav class="menu__panel" aria-label="{{ t('header.menu') }}">
-                {% for group in day_groups %}
-                    <p class="menu__group">{{ group.label }}</p>
-                    <ul class="menu__days">
-                        {% for entry in group.days %}
-                            <li>
-                                <a class="menu__day{{ entry.day == current_day ? ' menu__day--current' : '' }}"
-                                   href="{{ path('dashboard', {day: entry.day}) }}"
-                                   {%- if entry.day == current_day %} aria-current="date"{% endif %}>{{ entry.label }}</a>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% endfor %}
-                {% if not is_today %}
-                    <a class="menu__today" href="{{ path('dashboard') }}">{{ t('header.today') }}</a>
-                {% endif %}
-                <p class="menu__meta">{{ t('header.updated', {time: updated_at}) }}</p>
-            </nav>
-        </details>
-
         <h1>{{ day_label }}</h1>
         <p class="day__status{{ changes > 0 ? ' day__status--alert' : '' }}">
             {% if changes == 1 %}
@@ -47,6 +21,17 @@
                 {{ t('status.none') }}
             {% endif %}
         </p>
+
+        <nav class="pager" aria-label="{{ t('header.pager') }}">
+            <a class="pager__link pager__link--prev" rel="prev" href="{{ path('dashboard', {day: previous_day.day}) }}">
+                <span class="pager__arrow" aria-hidden="true">&larr;</span>
+                <span class="pager__label">{{ previous_day.label }}</span>
+            </a>
+            <a class="pager__link pager__link--next" rel="next" href="{{ path('dashboard', {day: next_day.day}) }}">
+                <span class="pager__label">{{ next_day.label }}</span>
+                <span class="pager__arrow" aria-hidden="true">&rarr;</span>
+            </a>
+        </nav>
     </header>
 
     <div class="columns">
@@ -105,6 +90,14 @@
     </div>
 
     <footer class="site-foot">
+        <p class="site-foot__updated">
+            {{ t('footer.updated', {time: updated_at}) }}
+            {% if not is_today %}
+                <span aria-hidden="true">·</span>
+                <a href="{{ path('dashboard') }}">{{ t('footer.today') }}</a>
+            {% endif %}
+        </p>
+        <hr class="site-foot__rule">
         <p class="site-foot__tagline">{{ t('footer.tagline', {heart: '<span class="site-foot__heart" aria-hidden="true">♥</span>'})|raw }}</p>
         <p class="site-foot__meta">
             <a href="https://github.com/sense-design/webuntis-dashboard" target="_blank" rel="noopener">{{ t('footer.source') }}</a>

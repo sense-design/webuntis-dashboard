@@ -58,12 +58,15 @@ final class DashboardController extends AbstractController
             }
         }
 
+        $previous = $this->adjacentSchoolDay($day, -1);
+        $next = $this->adjacentSchoolDay($day, 1);
+
         return $this->render('dashboard.html.twig', [
             'students' => $students,
             'day_label' => $this->formatDay($day),
-            'current_day' => $day->format('Y-m-d'),
             'is_today' => $day->format('Y-m-d') === (new \DateTimeImmutable('today', $timezone))->format('Y-m-d'),
-            'day_groups' => $this->dayGroups($day),
+            'previous_day' => ['day' => $previous->format('Y-m-d'), 'label' => $this->formatDayShort($previous)],
+            'next_day' => ['day' => $next->format('Y-m-d'), 'label' => $this->formatDayShort($next)],
             'changes' => $changes,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
@@ -116,35 +119,18 @@ final class DashboardController extends AbstractController
     }
 
     /**
-     * Day picker for the header: the previous, current and coming week, one
-     * entry per school day (Mon-Fri), grouped by week. The displayed day always
-     * falls in the middle group, so the picker can page a week at a time in
-     * either direction; a weekend date reached through `?day=` is kept so it
-     * can still show as selected.
-     *
-     * @return list<array{label: string, days: list<array{day: string, label: string}>}>
+     * The nearest school day before ($direction < 0) or after ($direction > 0)
+     * the given day. Saturdays and Sundays are stepped over, so paging forward
+     * from a Friday lands on the following Monday.
      */
-    private function dayGroups(\DateTimeImmutable $day): array
+    private function adjacentSchoolDay(\DateTimeImmutable $day, int $direction): \DateTimeImmutable
     {
-        $shown = $day->format('Y-m-d');
-        $weekStart = $day->modify('monday this week');
+        $step = $direction < 0 ? '-1 day' : '+1 day';
+        do {
+            $day = $day->modify($step);
+        } while ((int) $day->format('N') >= 6);
 
-        $groups = [];
-        foreach (['header.week_previous' => -7, 'header.week_current' => 0, 'header.week_next' => 7] as $labelKey => $offset) {
-            $start = $weekStart->modify(sprintf('%+d days', $offset));
-            $days = [];
-            for ($i = 0; $i < 7; ++$i) {
-                $current = $start->modify(sprintf('+%d days', $i));
-                $date = $current->format('Y-m-d');
-                if ($i >= 5 && $date !== $shown) {
-                    continue;
-                }
-                $days[] = ['day' => $date, 'label' => $this->formatDay($current)];
-            }
-            $groups[] = ['label' => $this->translator->trans($labelKey), 'days' => $days];
-        }
-
-        return $groups;
+        return $day;
     }
 
     private function formatDay(\DateTimeInterface $day): string
@@ -153,6 +139,20 @@ final class DashboardController extends AbstractController
             'weekday' => $this->translator->weekday((int) $day->format('N')),
             'day' => (int) $day->format('j'),
             'month' => $this->translator->month((int) $day->format('n')),
+        ]);
+    }
+
+    /**
+     * Compact label for the pager: abbreviated weekday and a numeric date, so
+     * both ends fit side by side on a phone (e.g. "Di, 08.09.2026").
+     */
+    private function formatDayShort(\DateTimeInterface $day): string
+    {
+        return $this->translator->trans('date.short', [
+            'weekday' => $this->translator->weekdayShort((int) $day->format('N')),
+            'day' => $day->format('d'),
+            'month' => $day->format('m'),
+            'year' => $day->format('Y'),
         ]);
     }
 }

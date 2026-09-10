@@ -70,6 +70,14 @@ final class Translator
         return \is_string($name) ? $name : (string) $isoDay;
     }
 
+    /** Abbreviated weekday name, falling back to the full name. */
+    public function weekdayShort(int $isoDay): string
+    {
+        $name = $this->lookup('weekdays_short.'.$isoDay);
+
+        return \is_string($name) ? $name : $this->weekday($isoDay);
+    }
+
     public function month(int $month): string
     {
         $name = $this->lookup('months.'.$month);

@@ -5,6 +5,7 @@ title: 'Stundenplan {day}'
 
 date:
     long: '{weekday}, {day}. {month}'
+    short: '{weekday}, {day}.{month}.{year}'
 
 status:
     none: 'Alles läuft nach Plan.'
@@ -21,14 +22,11 @@ lesson:
     substitution_for: 'Vertretung für {teachers}'
 
 header:
-    menu: 'Menü'
-    updated: 'Abgerufen um {time}'
-    today: 'Zurück zu heute'
-    week_previous: 'Letzte Woche'
-    week_current: 'Diese Woche'
-    week_next: 'Nächste Woche'
+    pager: 'Tag wechseln'
 
 footer:
+    updated: 'Abgerufen um {time}'
+    today: 'Zurück zu heute'
     tagline: 'Mit {heart} für Open Source gebaut'
     source: 'Quellcode auf GitHub'
     author: 'von {name}'
@@ -42,6 +40,15 @@ weekdays:
     5: Freitag
     6: Samstag
     7: Sonntag
+
+weekdays_short:
+    1: Mo
+    2: Di
+    3: Mi
+    4: Do
+    5: Fr
+    6: Sa
+    7: So
 
 months:
     1: Januar
