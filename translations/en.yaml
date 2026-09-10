@@ -22,8 +22,12 @@ lesson:
 
 footer:
     updated: 'Fetched at {time}'
-    tomorrow: 'View tomorrow'
     today: 'Back to today'
+    jump: 'Jump to another day'
+    go: 'Show'
+    week_previous: 'Last week'
+    week_current: 'This week'
+    week_next: 'Next week'
 
 weekdays:
     1: Monday

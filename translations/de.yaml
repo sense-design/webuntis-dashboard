@@ -22,8 +22,12 @@ lesson:
 
 footer:
     updated: 'Abgerufen um {time}'
-    tomorrow: 'Morgen ansehen'
     today: 'Zurück zu heute'
+    jump: 'Zu einem anderen Tag springen'
+    go: 'Anzeigen'
+    week_previous: 'Letzte Woche'
+    week_current: 'Diese Woche'
+    week_next: 'Nächste Woche'
 
 weekdays:
     1: Montag

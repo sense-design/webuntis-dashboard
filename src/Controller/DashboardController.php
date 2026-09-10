@@ -61,7 +61,9 @@ final class DashboardController extends AbstractController
         return $this->render('dashboard.html.twig', [
             'students' => $students,
             'day_label' => $this->formatDay($day),
+            'current_day' => $day->format('Y-m-d'),
             'is_today' => $day->format('Y-m-d') === (new \DateTimeImmutable('today', $timezone))->format('Y-m-d'),
+            'day_groups' => $this->dayGroups($day),
             'changes' => $changes,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
@@ -111,6 +113,38 @@ final class DashboardController extends AbstractController
         $client->logout();
 
         return $this->json($payload);
+    }
+
+    /**
+     * Day picker for the footer: the previous, current and coming week, one
+     * entry per school day (Mon-Fri), grouped by week. The displayed day always
+     * falls in the middle group, so the picker can page a week at a time in
+     * either direction; a weekend date reached through `?day=` is kept so it
+     * can still show as selected.
+     *
+     * @return list<array{label: string, days: list<array{day: string, label: string}>}>
+     */
+    private function dayGroups(\DateTimeImmutable $day): array
+    {
+        $shown = $day->format('Y-m-d');
+        $weekStart = $day->modify('monday this week');
+
+        $groups = [];
+        foreach (['footer.week_previous' => -7, 'footer.week_current' => 0, 'footer.week_next' => 7] as $labelKey => $offset) {
+            $start = $weekStart->modify(sprintf('%+d days', $offset));
+            $days = [];
+            for ($i = 0; $i < 7; ++$i) {
+                $current = $start->modify(sprintf('+%d days', $i));
+                $date = $current->format('Y-m-d');
+                if ($i >= 5 && $date !== $shown) {
+                    continue;
+                }
+                $days[] = ['day' => $date, 'label' => $this->formatDay($current)];
+            }
+            $groups[] = ['label' => $this->translator->trans($labelKey), 'days' => $days];
+        }
+
+        return $groups;
     }
 
     private function formatDay(\DateTimeInterface $day): string

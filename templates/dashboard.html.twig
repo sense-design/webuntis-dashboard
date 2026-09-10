@@ -80,11 +80,23 @@
 
     <footer class="foot">
         <span>{{ t('footer.updated', {time: updated_at}) }}</span>
-        {% if is_today %}
-            <a href="{{ path('dashboard', {day: 'tomorrow'}) }}">{{ t('footer.tomorrow') }}</a>
-        {% else %}
-            <a href="{{ path('dashboard') }}">{{ t('footer.today') }}</a>
-        {% endif %}
+        <div class="foot__nav">
+            {% if not is_today %}
+                <a href="{{ path('dashboard') }}">{{ t('footer.today') }}</a>
+            {% endif %}
+            <form method="get" action="{{ path('dashboard') }}">
+                <select name="day" aria-label="{{ t('footer.jump') }}" onchange="this.form.submit()">
+                    {% for group in day_groups %}
+                        <optgroup label="{{ group.label }}">
+                            {% for entry in group.days %}
+                                <option value="{{ entry.day }}"{{ entry.day == current_day ? ' selected' : '' }}>{{ entry.label }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
+                <noscript><button type="submit">{{ t('footer.go') }}</button></noscript>
+            </form>
+        </div>
     </footer>
 
 </main>

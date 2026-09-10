@@ -198,8 +198,10 @@ body {
 
 .foot {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.75rem 1rem;
     margin-top: 1.75rem;
     font-size: 0.875rem;
     color: var(--muted);
@@ -214,6 +216,27 @@ body {
 .foot a:focus-visible,
 .foot a:hover {
     text-decoration-color: currentColor;
+}
+
+.foot__nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.foot__nav select,
+.foot__nav button {
+    font: inherit;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+}
+
+.foot__nav button {
+    cursor: pointer;
 }
 
 :focus-visible {
