@@ -1,0 +1,30 @@
+{
+    "name": "sense-design/webuntis-dashboard",
+    "description": "Daily WebUntis timetable dashboard for several students",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.2",
+        "ext-json": "*",
+        "symfony/asset": "^7.1",
+        "symfony/cache": "^7.1",
+        "symfony/dotenv": "^7.1",
+        "symfony/framework-bundle": "^7.1",
+        "symfony/http-client": "^7.1",
+        "symfony/runtime": "^7.1",
+        "symfony/twig-bundle": "^7.1",
+        "symfony/yaml": "^7.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
+}

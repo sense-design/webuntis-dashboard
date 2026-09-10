@@ -1,0 +1,11 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    # This app has no encrypted secrets vault. Disabling it keeps the SodiumVault
+    # env-var loader out of the container, which would otherwise pull in
+    # symfony/string (LazyString) just to resolve %env(APP_SECRET)%.
+    secrets: false
+    php_errors:
+        log: true
+    cache:
+        app: cache.adapter.filesystem

@@ -1,0 +1,21 @@
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
+
+# WebUntis credentials and the /setup token. Copy config/untis.yaml.dist to
+# config/untis.yaml and fill it in; the real file never goes into git.
+/config/untis.yaml
+
+# DDEV keeps its own .ddev/.gitignore for the files it generates, so the rest
+# of .ddev/ is committed on purpose.
+
+# JetBrains IDEs
+/.idea/
+
+# macOS
+.DS_Store

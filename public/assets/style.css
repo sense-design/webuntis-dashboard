@@ -1,0 +1,233 @@
+:root {
+    --paper: #ECEEF0;
+    --card: #FFFFFF;
+    --ink: #16191D;
+    --muted: #6C727A;
+    --rule: #DBDEE3;
+    --alert: #A8261E;
+    --shift: #85570A;
+    --accent: #0F6E5C;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+}
+
+.dashboard {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 3rem;
+}
+
+/* Header --------------------------------------------------------------- */
+
+.day {
+    margin-bottom: 2rem;
+}
+
+.day h1 {
+    margin: 0;
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.day__status {
+    margin: 0.35rem 0 0;
+    font-size: 1.0625rem;
+    color: var(--muted);
+}
+
+.day__status--alert {
+    color: var(--alert);
+    font-weight: 550;
+}
+
+/* Columns -------------------------------------------------------------- */
+
+.columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.student {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 1.25rem 1.25rem 0.5rem;
+}
+
+.student h2 {
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 3px solid var(--accent);
+    font-size: 1.125rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+
+/* Lessons -------------------------------------------------------------- */
+
+.lessons {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.lesson {
+    display: grid;
+    grid-template-columns: 3.75rem 1fr;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--rule);
+}
+
+.lesson:first-child {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.lesson__time {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+.lesson__start {
+    font-size: 1.3125rem;
+    font-weight: 550;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.lesson__end {
+    font-size: 0.9375rem;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.lesson__body {
+    min-width: 0;
+}
+
+.lesson__subject {
+    margin: 0;
+    font-size: 1.1875rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.lesson__meta {
+    margin: 0.15rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.lesson__room {
+    margin-left: 0.9rem;
+}
+
+.lesson__note {
+    margin: 0.3rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.lesson__flag {
+    margin: 0.3rem 0 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--shift);
+}
+
+/* Cancelled and substituted -------------------------------------------- */
+
+.lesson--cancelled .lesson__subject {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    color: var(--muted);
+    font-weight: 550;
+}
+
+.lesson--cancelled .lesson__time,
+.lesson--cancelled .lesson__meta {
+    opacity: 0.6;
+}
+
+.lesson--cancelled .lesson__flag {
+    color: var(--alert);
+}
+
+.lesson--shifted .lesson__subject {
+    color: var(--shift);
+}
+
+/* Messages ------------------------------------------------------------- */
+
+.empty,
+.problem {
+    margin: 0 0 1rem;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.problem {
+    color: var(--alert);
+}
+
+/* Footer --------------------------------------------------------------- */
+
+.foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.75rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.foot a {
+    color: var(--ink);
+    text-decoration-color: var(--rule);
+    text-underline-offset: 3px;
+}
+
+.foot a:focus-visible,
+.foot a:hover {
+    text-decoration-color: currentColor;
+}
+
+:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+}
+
+@media (max-width: 30rem) {
+    .dashboard {
+        padding: 1.75rem 1rem 2.5rem;
+    }
+
+    .lesson {
+        grid-template-columns: 3.25rem 1fr;
+        gap: 0.85rem;
+    }
+}

@@ -1,0 +1,76 @@
+# WebUntis Dashboard - nginx vhost
+#
+# Copy to your nginx sites directory, adjust server_name, the root path and the
+# fastcgi_pass socket, then reload nginx. Based on the Symfony reference config:
+# https://symfony.com/doc/current/setup/web_server_configuration.html
+#
+# The app has no build step and no database. PHP-FPM is the only moving part.
+# Put HTTP basic auth, an IP allowlist or your SSO in front of it (see below)
+# and terminate TLS here or on a proxy in front.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name untis.example.com;
+
+    # Redirect everything to HTTPS. Drop this block if TLS is terminated upstream.
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name untis.example.com;
+
+    root /var/www/webuntis-dashboard/public;
+
+    ssl_certificate     /etc/letsencrypt/live/untis.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/untis.example.com/privkey.pem;
+
+    # Restrict access. Pick one, or combine them.
+    #
+    # auth_basic           "WebUntis Dashboard";
+    # auth_basic_user_file /etc/nginx/webuntis-dashboard.htpasswd;
+    #
+    # allow 192.0.2.0/24;
+    # allow 203.0.113.4;
+    # deny  all;
+
+    location / {
+        # Try the requested file, then hand everything to the front controller.
+        try_files $uri /index.php$is_args$args;
+    }
+
+    # Only the front controller may run. Every other .php path is denied so a
+    # stray script under public/ can never be executed.
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:/run/php/php-fpm.sock;
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+
+        internal;
+    }
+
+    location ~ \.php$ {
+        return 404;
+    }
+
+    # Static assets: let the browser cache them, they are versioned by name.
+    location /assets/ {
+        expires 7d;
+        access_log off;
+        try_files $uri =404;
+    }
+
+    # Never serve dotfiles or the config directory, whatever the document root.
+    location ~ /\. {
+        deny all;
+    }
+
+    error_log /var/log/nginx/webuntis-dashboard.error.log;
+    access_log /var/log/nginx/webuntis-dashboard.access.log;
+}

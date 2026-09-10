@@ -1,0 +1,27 @@
+parameters:
+    untis.config_file: '%kernel.project_dir%/config/untis.yaml'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            # Value objects and helpers that are never injected.
+            - '../src/Untis/Lesson.php'
+            - '../src/Untis/Person.php'
+            - '../src/Untis/Totp.php'
+            - '../src/Untis/UntisException.php'
+            # Built per account by TimetableProvider, not by the container.
+            - '../src/Untis/UntisClient.php'
+
+    App\Untis\ConfigLoader:
+        arguments:
+            $configFile: '%untis.config_file%'
+
+    App\I18n\Translator:
+        arguments:
+            $translationsDir: '%kernel.project_dir%/translations'

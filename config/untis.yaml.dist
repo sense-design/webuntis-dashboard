@@ -1,0 +1,53 @@
+# Copy to config/untis.yaml and fill in. That file is gitignored.
+
+# Host part of your school's WebUntis URL, without https://
+server: nessa.webuntis.com
+
+# School login name, exactly as it appears in the WebUntis URL or QR code.
+school: my-school
+
+timezone: Europe/Berlin
+
+# UI language for the whole app: en or de.
+locale: en
+
+# How long a fetched day is reused before WebUntis is asked again.
+cache_ttl: 300
+
+# Browser auto-reload interval. Set to 0 to switch it off.
+refresh_seconds: 600
+
+# Token that unlocks the /setup/<account-id> helper: call it as
+# /setup/<account-id>?token=<this value>. Without a match the route 404s.
+# Generate one with: openssl rand -hex 16
+setup_token: 'change-me'
+
+# One entry per WebUntis login. A parent account with two children needs
+# one entry; two separate student logins need two.
+accounts:
+    - id: parent
+      method: secret          # secret (recommended) or password
+      user: erika.musterfrau
+      secret: 'ABCDEFGHIJKLMNOP'
+
+    # - id: mila
+    #   method: password
+    #   user: mila.musterfrau
+    #   password: 'secret'
+
+# One entry per student shown on the dashboard, in display order.
+students:
+    - name: Mila
+      account: parent
+      # element_id comes from /setup/<account-id>. Leave it out when the
+      # account itself is the student.
+      element_id: 1234
+      # WebUntis lists every parallel course of a year group for a student
+      # (Religion vs. Praktische Philosophie, the AG slot, ...). List the
+      # subjects this student does not attend, exactly as they show on the
+      # dashboard, and they are dropped.
+      # hide_subjects: ['07_ER', 'AG_Garten']
+
+    - name: Jonas
+      account: parent
+      element_id: 5678
