@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\I18n\Translator;
 use App\Untis\ConfigLoader;
+use App\Untis\Homework;
 use App\Untis\Lesson;
 use App\Untis\TimetableProvider;
 use App\Untis\UntisException;
@@ -62,12 +63,48 @@ final class DashboardController extends AbstractController
         $next = $this->adjacentSchoolDay($day, 1);
 
         return $this->render('dashboard.html.twig', [
+            'view' => 'timetable',
             'students' => $students,
             'day_label' => $this->formatDay($day),
             'is_today' => $day->format('Y-m-d') === (new \DateTimeImmutable('today', $timezone))->format('Y-m-d'),
             'previous_day' => ['day' => $previous->format('Y-m-d'), 'label' => $this->formatDayShort($previous)],
             'next_day' => ['day' => $next->format('Y-m-d'), 'label' => $this->formatDayShort($next)],
             'changes' => $changes,
+            'refresh_seconds' => $this->config->refreshSeconds(),
+            'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+        ]);
+    }
+
+    /**
+     * The homework view: every student's outstanding homework, sorted by due
+     * date. It has no day pager because homework is not day-scoped.
+     */
+    #[Route('/homework', name: 'homework', methods: ['GET'])]
+    public function homework(): Response
+    {
+        $timezone = $this->config->timezone();
+        $today = new \DateTimeImmutable('today', $timezone);
+
+        $students = $this->provider->fetchHomework();
+        foreach ($students as $index => $student) {
+            $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+            $students[$index]['homework'] = array_map(
+                fn (Homework $homework): array => [
+                    'subject' => $homework->subject,
+                    'text' => $homework->text,
+                    'remark' => $homework->remark,
+                    'teacher' => $homework->teacher,
+                    'due' => $this->formatDayCompact($homework->dueOn),
+                    'overdue' => $homework->isOverdue($today),
+                ],
+                $student['homework'],
+            );
+        }
+
+        return $this->render('dashboard.html.twig', [
+            'view' => 'homework',
+            'students' => $students,
+            'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
         ]);
@@ -153,6 +190,16 @@ final class DashboardController extends AbstractController
             'day' => $day->format('d'),
             'month' => $day->format('m'),
             'year' => $day->format('Y'),
+        ]);
+    }
+
+    /** Year-less date for homework due dates (e.g. "Fr, 11.09."). */
+    private function formatDayCompact(\DateTimeInterface $day): string
+    {
+        return $this->translator->trans('date.compact', [
+            'weekday' => $this->translator->weekdayShort((int) $day->format('N')),
+            'day' => $day->format('d'),
+            'month' => $day->format('m'),
         ]);
     }
 }

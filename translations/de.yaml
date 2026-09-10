@@ -6,6 +6,7 @@ title: 'Stundenplan {day}'
 date:
     long: '{weekday}, {day}. {month}'
     short: '{weekday}, {day}.{month}.{year}'
+    compact: '{weekday}, {day}.{month}.'
 
 status:
     none: 'Alles läuft nach Plan.'
@@ -20,6 +21,15 @@ lesson:
     cancelled: 'fällt aus'
     substitution: 'Vertretung'
     substitution_for: 'Vertretung für {teachers}'
+
+homework:
+    title: 'Hausaufgaben'
+    none: 'Keine offenen Hausaufgaben.'
+    due: 'fällig {date}'
+
+nav:
+    timetable: 'Stundenplan'
+    homework: 'Hausaufgaben'
 
 header:
     pager: 'Tag wechseln'

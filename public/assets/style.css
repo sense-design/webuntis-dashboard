@@ -37,7 +37,7 @@ body {
 /* Header --------------------------------------------------------------- */
 
 .day {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 .day h1 {
@@ -47,8 +47,10 @@ body {
     letter-spacing: -0.02em;
 }
 
+/* Sits last in the header, right above the timetable, so the tabs and pager
+   keep the same position when the homework view drops it. */
 .day__status {
-    margin: 0.35rem 0 0;
+    margin: 1.25rem 0 0;
     font-size: 1.0625rem;
     color: var(--muted);
 }
@@ -181,6 +183,60 @@ body {
     color: var(--shift);
 }
 
+/* Homework ----------------------------------------------------------------- */
+
+.homework {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.homework__item {
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--rule);
+}
+
+.homework__item:first-child {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.homework__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.homework__subject {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.homework__due {
+    flex: none;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.homework__due--overdue {
+    color: var(--alert);
+    font-weight: 550;
+}
+
+.homework__text {
+    margin: 0.25rem 0 0;
+    font-size: 0.9375rem;
+    white-space: pre-line;
+}
+
+.homework__remark {
+    margin: 0.2rem 0 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
 /* Messages ------------------------------------------------------------- */
 
 .empty,
@@ -192,6 +248,32 @@ body {
 
 .problem {
     color: var(--alert);
+}
+
+/* Header navigation --------------------------------------------------------- */
+
+.views {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    font-size: 0.9375rem;
+}
+
+.views__link {
+    padding-bottom: 0.15rem;
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+}
+
+.views__link:hover {
+    color: var(--ink);
+}
+
+.views__link--active {
+    color: var(--ink);
+    font-weight: 600;
+    border-bottom-color: var(--ink);
 }
 
 /* Header pager ---------------------------------------------------------- */

@@ -92,6 +92,13 @@ and should be `chmod 600` and owned by the PHP-FPM user.
 `?day=tomorrow` or `?day=2026-09-14` shows another day. The header has a pager
 to the previous and next school day; Saturdays and Sundays are stepped over.
 
+`/homework` switches to the homework list: every student's outstanding
+homework, sorted by due date, read from the mobile app's
+`/WebUntis/api/homeworks/lessons` endpoint. Completed assignments are dropped.
+That feed names subjects by short code only, so the next three weeks of
+timetable are read alongside it to show the same long name the timetable does
+("07_WP_BI" becomes "Biologie"). The two views are linked from the header.
+
 The UI ships in English and German, set app-wide by `locale`. Strings live in
 `translations/en.yaml` and `translations/de.yaml`.
 
@@ -109,17 +116,19 @@ The UI ships in English and German, set app-wide by `locale`. Strings live in
 ## Possible next steps
 
 - Free period markers between blocks, so "starts at 09:50" reads at a glance
-- Homework and exams, both reachable through the same session
+- Exams, reachable through the same session as homework
 - An iCal feed per student for the family calendar
 - Push on change: diff the cached day against a fresh fetch and send on delta
 
 ## Layout
 
 ```
-src/Untis/UntisClient.php       JSON-RPC calls, both login paths, normalisation
+src/Untis/UntisClient.php       JSON-RPC + REST calls, both login paths, normalisation
 src/Untis/Totp.php              RFC 6238 tokens from the app secret
 src/Untis/ConfigLoader.php      Reads config/untis.yaml
 src/Untis/TimetableProvider.php Session reuse per account, caching, error isolation
+src/Untis/Lesson.php            One timetable block
+src/Untis/Homework.php          One outstanding homework assignment
 src/Controller/DashboardController.php  Dashboard page and the /setup helper
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function

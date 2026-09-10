@@ -4,34 +4,46 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% if refresh_seconds > 0 %}<meta http-equiv="refresh" content="{{ refresh_seconds }}">{% endif %}
-    <title>{{ t('title', {day: day_label}) }}</title>
+    <title>{{ view == 'homework' ? t('homework.title') : t('title', {day: day_label}) }}</title>
     <link rel="stylesheet" href="{{ asset('assets/style.css') }}">
 </head>
 <body>
 <main class="dashboard">
 
     <header class="day">
-        <h1>{{ day_label }}</h1>
-        <p class="day__status{{ changes > 0 ? ' day__status--alert' : '' }}">
-            {% if changes == 1 %}
-                {{ t('status.one') }}
-            {% elseif changes > 1 %}
-                {{ t('status.many', {count: changes}) }}
-            {% else %}
-                {{ t('status.none') }}
-            {% endif %}
-        </p>
+        <h1>{{ view == 'homework' ? t('homework.title') : day_label }}</h1>
 
-        <nav class="pager" aria-label="{{ t('header.pager') }}">
-            <a class="pager__link pager__link--prev" rel="prev" href="{{ path('dashboard', {day: previous_day.day}) }}">
-                <span class="pager__arrow" aria-hidden="true">&larr;</span>
-                <span class="pager__label">{{ previous_day.label }}</span>
-            </a>
-            <a class="pager__link pager__link--next" rel="next" href="{{ path('dashboard', {day: next_day.day}) }}">
-                <span class="pager__label">{{ next_day.label }}</span>
-                <span class="pager__arrow" aria-hidden="true">&rarr;</span>
-            </a>
+        <nav class="views" aria-label="{{ t('nav.timetable') }} / {{ t('nav.homework') }}">
+            <a class="views__link{{ view != 'homework' ? ' views__link--active' : '' }}"
+               href="{{ path('dashboard') }}"
+               {%- if view != 'homework' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
+            <a class="views__link{{ view == 'homework' ? ' views__link--active' : '' }}"
+               href="{{ path('homework') }}"
+               {%- if view == 'homework' %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
         </nav>
+
+        {% if view != 'homework' %}
+            <nav class="pager" aria-label="{{ t('header.pager') }}">
+                <a class="pager__link pager__link--prev" rel="prev" href="{{ path('dashboard', {day: previous_day.day}) }}">
+                    <span class="pager__arrow" aria-hidden="true">&larr;</span>
+                    <span class="pager__label">{{ previous_day.label }}</span>
+                </a>
+                <a class="pager__link pager__link--next" rel="next" href="{{ path('dashboard', {day: next_day.day}) }}">
+                    <span class="pager__label">{{ next_day.label }}</span>
+                    <span class="pager__arrow" aria-hidden="true">&rarr;</span>
+                </a>
+            </nav>
+
+            <p class="day__status{{ changes > 0 ? ' day__status--alert' : '' }}">
+                {% if changes == 1 %}
+                    {{ t('status.one') }}
+                {% elseif changes > 1 %}
+                    {{ t('status.many', {count: changes}) }}
+                {% else %}
+                    {{ t('status.none') }}
+                {% endif %}
+            </p>
+        {% endif %}
     </header>
 
     <div class="columns">
@@ -43,6 +55,25 @@
                     <p class="problem">
                         {{ t('student.error', {message: student.error}) }}
                     </p>
+                {% elseif view == 'homework' %}
+                    {% if student.homework is empty %}
+                        <p class="empty">{{ t('homework.none') }}</p>
+                    {% else %}
+                        <ol class="homework">
+                            {% for task in student.homework %}
+                                <li class="homework__item">
+                                    <div class="homework__head">
+                                        <span class="homework__subject">{{ task.subject }}</span>
+                                        <span class="homework__due{{ task.overdue ? ' homework__due--overdue' : '' }}">{{ t('homework.due', {date: task.due}) }}</span>
+                                    </div>
+                                    <p class="homework__text">{{ task.text }}</p>
+                                    {% if task.remark %}
+                                        <p class="homework__remark">{{ task.remark }}</p>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% endif %}
                 {% elseif student.lessons is empty %}
                     <p class="empty">{{ t('student.empty') }}</p>
                 {% else %}

@@ -173,6 +173,145 @@ final class UntisClient
         ?int $elementId = null,
         ?int $elementType = null,
     ): array {
+        [$elementId, $elementType] = $this->resolveElement($elementId, $elementType);
+
+        $lessons = array_map(
+            $this->toLesson(...),
+            $this->timetableRows($day, $day, $elementId, $elementType),
+        );
+        usort($lessons, static fn (Lesson $a, Lesson $b) => $a->start <=> $b->start);
+
+        return $this->mergeAdjacent($lessons);
+    }
+
+    /**
+     * Map of subject short name to long name, harvested from the timetable
+     * over [$from, $to] (e.g. "07_WP_BI" => "Biologie"). The homework feed
+     * names its subject only by the short code, so this is how it reaches the
+     * page with the same label the timetable shows.
+     *
+     * @return array<string, string>
+     */
+    public function getSubjectNames(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        ?int $elementId = null,
+        ?int $elementType = null,
+    ): array {
+        [$elementId, $elementType] = $this->resolveElement($elementId, $elementType);
+
+        $names = [];
+        foreach ($this->timetableRows($from, $to, $elementId, $elementType) as $row) {
+            foreach ($row['su'] ?? [] as $subject) {
+                $short = (string) ($subject['name'] ?? '');
+                $long = (string) ($subject['longname'] ?? '');
+                if ('' !== $short && '' !== $long) {
+                    $names[$short] = $long;
+                }
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Outstanding homework for the account's student, due between $from and
+     * $to, sorted by due date. Completed assignments are dropped.
+     *
+     * WebUntis keys homework by lesson, so this reads the mobile app's
+     * /api/homeworks/lessons endpoint rather than jsonrpc.do, which has no
+     * homework method. The session already carries the student context; an
+     * explicit $elementId only matters for a parent account with more than
+     * one child, where the response mixes them. The feed names subjects by
+     * short code only, so the timetable over the same range is read to
+     * resolve them to long names.
+     *
+     * @return list<Homework>
+     */
+    public function getHomework(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        ?int $elementId = null,
+        ?int $elementType = null,
+    ): array {
+        // Three weeks of upcoming timetable is enough to see every subject the
+        // student regularly attends. It looks forward only: reaching back over
+        // the summer break trips WebUntis' "single school year" guard.
+        $now = new \DateTimeImmutable('today');
+        $subjectNames = $this->getSubjectNames(
+            $now,
+            $now->modify('+20 days'),
+            $elementId,
+            $elementType,
+        );
+
+        $body = $this->apiGet('api/homeworks/lessons', [
+            'startDate' => (int) $from->format('Ymd'),
+            'endDate' => (int) $to->format('Ymd'),
+        ]);
+
+        $data = $body['data'] ?? [];
+
+        $subjects = [];
+        foreach ($data['lessons'] ?? [] as $lesson) {
+            $code = (string) ($lesson['subject'] ?? '');
+            $subjects[(int) ($lesson['id'] ?? 0)] = $subjectNames[$code] ?? $code;
+        }
+
+        $teachers = [];
+        foreach ($data['teachers'] ?? [] as $teacher) {
+            $teachers[(int) ($teacher['id'] ?? 0)] = (string) ($teacher['name'] ?? '');
+        }
+
+        // A record ties a homework to its teacher and to the students it was
+        // set for; the homework body itself carries neither.
+        $teacherOf = [];
+        $studentsOf = [];
+        foreach ($data['records'] ?? [] as $record) {
+            $homeworkId = (int) ($record['homeworkId'] ?? 0);
+            $teacherOf[$homeworkId] = $teachers[(int) ($record['teacherId'] ?? 0)] ?? '';
+            $studentsOf[$homeworkId] = array_map('intval', $record['elementIds'] ?? []);
+        }
+
+        $homework = [];
+        foreach ($data['homeworks'] ?? [] as $row) {
+            if ($row['completed'] ?? false) {
+                continue;
+            }
+
+            $id = (int) ($row['id'] ?? 0);
+            if (null !== $elementId
+                && isset($studentsOf[$id])
+                && !\in_array($elementId, $studentsOf[$id], true)
+            ) {
+                continue;
+            }
+
+            $homework[] = new Homework(
+                subject: $subjects[(int) ($row['lessonId'] ?? 0)] ?? '',
+                text: trim((string) ($row['text'] ?? '')),
+                assignedOn: $this->parseDateStamp((int) ($row['date'] ?? 0)),
+                dueOn: $this->parseDateStamp((int) ($row['dueDate'] ?? 0)),
+                teacher: $teacherOf[$id] ?? '',
+                remark: trim((string) ($row['remark'] ?? '')),
+            );
+        }
+
+        usort($homework, static fn (Homework $a, Homework $b) => $a->dueOn <=> $b->dueOn);
+
+        return $homework;
+    }
+
+    // -- plumbing ---------------------------------------------------------
+
+    /**
+     * Fall back to the logged-in account's own element when the caller did
+     * not name one (single-student accounts).
+     *
+     * @return array{0: int, 1: int} element id and type
+     */
+    private function resolveElement(?int $elementId, ?int $elementType): array
+    {
         if (null === $elementId) {
             if (null === $this->person || 0 === $this->person->elementId) {
                 throw new UntisException(
@@ -183,19 +322,28 @@ final class UntisClient
             $elementType ??= $this->person->elementType;
         }
 
-        $stamp = (int) $day->format('Ymd');
+        return [$elementId, $elementType ?? self::ELEMENT_STUDENT];
+    }
 
+    /**
+     * Raw getTimetable period rows for one element over [$from, $to].
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function timetableRows(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        int $elementId,
+        int $elementType,
+    ): array {
         $result = $this->call('jsonrpc.do', [
             'id' => 'webuntis-dashboard',
             'method' => 'getTimetable',
             'params' => [
                 'options' => [
-                    'element' => [
-                        'id' => $elementId,
-                        'type' => $elementType ?? self::ELEMENT_STUDENT,
-                    ],
-                    'startDate' => $stamp,
-                    'endDate' => $stamp,
+                    'element' => ['id' => $elementId, 'type' => $elementType],
+                    'startDate' => (int) $from->format('Ymd'),
+                    'endDate' => (int) $to->format('Ymd'),
                     'showInfo' => true,
                     'showSubstText' => true,
                     'showLsText' => true,
@@ -209,13 +357,8 @@ final class UntisClient
             'jsonrpc' => '2.0',
         ]);
 
-        $lessons = array_map($this->toLesson(...), \is_array($result) ? $result : []);
-        usort($lessons, static fn (Lesson $a, Lesson $b) => $a->start <=> $b->start);
-
-        return $this->mergeAdjacent($lessons);
+        return \is_array($result) ? array_values($result) : [];
     }
-
-    // -- plumbing ---------------------------------------------------------
 
     /**
      * @param array<string, mixed> $payload
@@ -225,11 +368,6 @@ final class UntisClient
      */
     private function call(string $path, array $payload, array $query = []): array
     {
-        $cookies = ['schoolname="_'.base64_encode($this->school).'"'];
-        if (null !== $this->sessionId) {
-            array_unshift($cookies, 'JSESSIONID='.$this->sessionId);
-        }
-
         try {
             $response = $this->httpClient->request(
                 'POST',
@@ -239,7 +377,7 @@ final class UntisClient
                     'json' => $payload,
                     'headers' => [
                         'User-Agent' => $this->userAgent,
-                        'Cookie' => implode('; ', $cookies),
+                        'Cookie' => $this->cookieHeader(),
                     ],
                     'timeout' => 20,
                 ],
@@ -281,6 +419,63 @@ final class UntisClient
         }
 
         return (array) $body['result'];
+    }
+
+    /**
+     * GET against the internal REST API (/WebUntis/api/...), which the mobile
+     * app uses for data jsonrpc.do does not expose. Returns the decoded body;
+     * the caller digs out the part it needs.
+     *
+     * @param array<string, string|int> $query
+     *
+     * @return array<mixed>
+     */
+    private function apiGet(string $path, array $query = []): array
+    {
+        if (null === $this->sessionId) {
+            throw new UntisException('Not logged in.');
+        }
+
+        try {
+            $response = $this->httpClient->request(
+                'GET',
+                sprintf('https://%s/WebUntis/%s', $this->server, $path),
+                [
+                    'query' => array_merge(['school' => $this->school], $query),
+                    'headers' => [
+                        'User-Agent' => $this->userAgent,
+                        'Cookie' => $this->cookieHeader(),
+                    ],
+                    'timeout' => 20,
+                ],
+            );
+
+            $status = $response->getStatusCode();
+            if ($status >= 400) {
+                throw new UntisException(sprintf(
+                    'WebUntis answered with HTTP %d for %s.',
+                    $status,
+                    $path,
+                ));
+            }
+
+            return $response->toArray(false);
+        } catch (HttpExceptionInterface $exception) {
+            throw new UntisException(
+                sprintf('Could not reach %s: %s', $this->server, $exception->getMessage()),
+                previous: $exception,
+            );
+        }
+    }
+
+    private function cookieHeader(): string
+    {
+        $cookies = ['schoolname="_'.base64_encode($this->school).'"'];
+        if (null !== $this->sessionId) {
+            array_unshift($cookies, 'JSESSIONID='.$this->sessionId);
+        }
+
+        return implode('; ', $cookies);
     }
 
     private function normaliseElementType(mixed $raw): int
@@ -364,6 +559,14 @@ final class UntisClient
     private function formatTime(int $value): string
     {
         return sprintf('%02d:%02d', intdiv($value, 100), $value % 100);
+    }
+
+    /** Turn the WebUntis integer date 20260908 into a DateTimeImmutable. */
+    private function parseDateStamp(int $value): \DateTimeImmutable
+    {
+        $date = \DateTimeImmutable::createFromFormat('!Ymd', (string) $value);
+
+        return false !== $date ? $date : new \DateTimeImmutable('@0');
     }
 
     private function toMinutes(string $time): int

@@ -40,6 +40,22 @@ final class TimetableProvider
         });
     }
 
+    /**
+     * Open homework for every configured student, newest due date last. Not
+     * tied to a day: WebUntis is asked for a window around today and the
+     * client keeps whatever is still outstanding.
+     *
+     * @return list<array{name: string, homework: list<Homework>, error: ?string}>
+     */
+    public function fetchHomework(): array
+    {
+        return $this->cache->get('webuntis_dashboard.homework', function (ItemInterface $item) {
+            $item->expiresAfter($this->config->cacheTtl());
+
+            return $this->fetchHomeworkUncached();
+        });
+    }
+
     public function connect(string $accountId): UntisClient
     {
         $accounts = $this->config->accounts();
@@ -107,6 +123,52 @@ final class TimetableProvider
                     $entry['lessons'] = $lessons;
                 } catch (UntisException $exception) {
                     $this->logger->warning('WebUntis lookup failed for {student}: {message}', [
+                        'student' => $student['name'],
+                        'message' => $exception->getMessage(),
+                    ]);
+                    $entry['error'] = $exception->getMessage();
+                }
+
+                $results[] = $entry;
+            }
+        } finally {
+            foreach ($sessions as $session) {
+                $session->logout();
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * @return list<array{name: string, homework: list<Homework>, error: ?string}>
+     */
+    private function fetchHomeworkUncached(): array
+    {
+        $today = new \DateTimeImmutable('today', $this->config->timezone());
+        $from = $today->modify('-30 days');
+        $to = $today->modify('+30 days');
+
+        /** @var array<string, UntisClient> $sessions */
+        $sessions = [];
+        $results = [];
+
+        try {
+            foreach ($this->config->students() as $student) {
+                $entry = ['name' => $student['name'], 'homework' => [], 'error' => null];
+
+                try {
+                    $accountId = $student['account'];
+                    $sessions[$accountId] ??= $this->connect($accountId);
+
+                    $entry['homework'] = $sessions[$accountId]->getHomework(
+                        $from,
+                        $to,
+                        isset($student['element_id']) ? (int) $student['element_id'] : null,
+                        isset($student['element_type']) ? (int) $student['element_type'] : null,
+                    );
+                } catch (UntisException $exception) {
+                    $this->logger->warning('WebUntis homework lookup failed for {student}: {message}', [
                         'student' => $student['name'],
                         'message' => $exception->getMessage(),
                     ]);

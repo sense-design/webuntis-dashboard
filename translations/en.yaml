@@ -6,6 +6,7 @@ title: 'Timetable {day}'
 date:
     long: '{weekday}, {day} {month}'
     short: '{weekday}, {year}-{month}-{day}'
+    compact: '{weekday}, {month}/{day}'
 
 status:
     none: 'Everything is on schedule.'
@@ -20,6 +21,15 @@ lesson:
     cancelled: 'cancelled'
     substitution: 'Substitution'
     substitution_for: 'Substitution for {teachers}'
+
+homework:
+    title: 'Homework'
+    none: 'No open homework.'
+    due: 'due {date}'
+
+nav:
+    timetable: 'Timetable'
+    homework: 'Homework'
 
 header:
     pager: 'Change day'
