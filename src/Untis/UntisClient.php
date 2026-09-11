@@ -215,6 +215,41 @@ final class UntisClient
     }
 
     /**
+     * Every distinct subject name this element's timetable shows over
+     * [$from, $to], sorted. Resolved exactly like getTimetable() resolves
+     * each lesson's subject (longname, falling back to the short code when
+     * a subject has none) - unlike getSubjectNames(), which only knows
+     * subjects that have both a short code and a longname, so it misses the
+     * short-code-only ones (a common shape for AG/elective slots). The
+     * `hide_subjects` config matches against this same resolved name, so
+     * this is what builds that picklist in /admin.
+     *
+     * @return list<string>
+     */
+    public function getSubjects(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        ?int $elementId = null,
+        ?int $elementType = null,
+    ): array {
+        [$elementId, $elementType] = $this->resolveElement($elementId, $elementType);
+
+        $subjects = [];
+        foreach ($this->timetableRows($from, $to, $elementId, $elementType) as $row) {
+            $names = $this->names($row['su'] ?? []);
+            $subject = $names[0] ?? (string) ($row['activityType'] ?? 'Unterricht');
+            if ('' !== $subject) {
+                $subjects[$subject] = true;
+            }
+        }
+
+        $result = array_keys($subjects);
+        sort($result, \SORT_STRING | \SORT_FLAG_CASE);
+
+        return $result;
+    }
+
+    /**
      * Outstanding homework for the account's student, due between $from and
      * $to, sorted by due date. Completed assignments are dropped.
      *

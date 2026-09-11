@@ -15,14 +15,20 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
 - CSS is plain CSS in `public/assets/style.css`. No build pipeline, no
   framework, no utility classes.
 - Every colour is one of the custom properties on `:root` (`--paper`,
-  `--card`, `--ink`, `--muted`, `--rule`, `--alert`, `--shift`, `--accent`).
-  Dark mode is a single `@media (prefers-color-scheme: dark)` block that
-  redeclares those eight tokens (no in-app toggle, follows the system
-  setting) — a literal hex colour anywhere outside that pair of blocks
-  either can't be reached from a token or will not adapt to dark mode.
-  `color: #fff` is the one intentional exception, always paired with
-  `background: var(--accent)`, since that combination is designed to work
-  in both themes.
+  `--card`, `--ink`, `--muted`, `--rule`, `--alert`, `--shift`, `--accent`) —
+  a literal hex colour anywhere outside the three theme blocks in
+  `style.css` either can't be reached from a token or will not adapt to
+  dark mode. `color: #fff` is the one intentional exception, always paired
+  with `background: var(--accent)`, since that combination is designed to
+  work in both themes. Theme defaults to following the system setting; the
+  `theme` setting (`system`/`light`/`dark`, `/admin` or `theme` in
+  `untis.yaml`) can pin it instead via `html[data-theme]`
+  (`ConfigLoader::theme()`, set on `<html>` in both templates — omitted
+  entirely for `system`, so the `@media (prefers-color-scheme: dark)` block
+  is what applies then). The dark tokens are declared twice in `style.css`
+  on purpose: once gated by that media query for the system-follows case,
+  once under `:root[data-theme="dark"]` for the pinned case — keep both in
+  sync when a token's dark value changes.
 - Optional features (homework, exams, free-period markers) are on by default
   and switched off individually via `features.<name>` in `untis.yaml`, or
   from `/admin`, read through `ConfigLoader::<name>Enabled()`. A disabled
@@ -34,7 +40,20 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
   from `var/settings.yaml` instead, via `ConfigLoader::saveSettings()` /
   the private `settings()` overlay. Do not add a form field for anything
   that lives only in `untis.yaml` (accounts, students, server/school,
-  timezone, either token) — those stay a manual edit on purpose.
+  timezone, either token) — those stay a manual edit on purpose. The one
+  per-student exception is `hide_subjects`: not a credential, and exposed
+  through `/admin` keyed by student *name* (`ConfigLoader::hiddenSubjects()`)
+  rather than by array index, so it survives untis.yaml being reordered or
+  gaining a new student. A save always resubmits every currently-known
+  student, so a student whose live subject fetch fails on the way in must be
+  left out of that resubmission (via the `hide_subjects_shown` marker in
+  `admin.html.twig`) rather than saved as empty — otherwise a WebUntis
+  hiccup during an unrelated field change would silently clear their hidden
+  subjects. `AdminController::admin()` also clears the whole cache pool
+  after every save: unlike the other settings, `hide_subjects` is baked into
+  `TimetableProvider::fetchDay()`'s cached result at fetch time rather than
+  read fresh at render time, so without the clear a change would sit
+  invisible for up to `cache_ttl` seconds on every day already cached.
 - Marking homework done (`/homework/{id}/done` and `/homework/{id}/open`) is
   purely local, the same "layer state in `var/`, never touch WebUntis or
   `untis.yaml`" pattern as `/admin` settings — see `HomeworkTracker`. It is

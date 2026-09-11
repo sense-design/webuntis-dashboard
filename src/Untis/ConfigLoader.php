@@ -96,6 +96,18 @@ final class ConfigLoader
     }
 
     /**
+     * `system` (follow the browser's own light/dark setting - the default),
+     * `light` or `dark` to pin it regardless. An unrecognised value falls
+     * back to `system` rather than being trusted as-is.
+     */
+    public function theme(): string
+    {
+        $value = (string) ($this->settings()['theme'] ?? $this->load()['theme'] ?? 'system');
+
+        return \in_array($value, ['system', 'light', 'dark'], true) ? $value : 'system';
+    }
+
+    /**
      * Every optional feature is on by default; `features:` in untis.yaml (or
      * an admin-saved override) only needs to list the ones to switch off.
      */
@@ -115,16 +127,42 @@ final class ConfigLoader
     }
 
     /**
+     * The effective `hide_subjects` list for one student, keyed by name: an
+     * admin-saved override when there is one (even an empty list, meaning
+     * "hide nothing"), otherwise whatever untis.yaml has for that student.
+     * Subject names carry stray double spaces sometimes, so callers compare
+     * against this loosely rather than expecting an exact match.
+     *
+     * @return list<string>
+     */
+    public function hiddenSubjects(string $studentName): array
+    {
+        $overrides = $this->settings()['hide_subjects'] ?? null;
+        if (\is_array($overrides) && \array_key_exists($studentName, $overrides)) {
+            return array_values((array) $overrides[$studentName]);
+        }
+
+        foreach ($this->load()['students'] as $student) {
+            if (($student['name'] ?? null) === $studentName) {
+                return array_values($student['hide_subjects'] ?? []);
+            }
+        }
+
+        return [];
+    }
+
+    /**
      * The current admin-editable settings, as they would be shown pre-filled
      * on the `/admin` form: saved overrides where they exist, the matching
      * untis.yaml value or built-in default otherwise.
      *
-     * @return array{locale: string, cache_ttl: int, refresh_seconds: int, features: array{homework: bool, exams: bool, free_periods: bool}}
+     * @return array{locale: string, theme: string, cache_ttl: int, refresh_seconds: int, features: array{homework: bool, exams: bool, free_periods: bool}}
      */
     public function currentSettings(): array
     {
         return [
             'locale' => $this->locale(),
+            'theme' => $this->theme(),
             'cache_ttl' => $this->cacheTtl(),
             'refresh_seconds' => $this->refreshSeconds(),
             'features' => [

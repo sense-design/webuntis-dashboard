@@ -12,6 +12,10 @@ timezone: Europe/Berlin
 # /admin (see admin_token below); the saved value then wins over this one.
 locale: en
 
+# Light/dark appearance: system (follow the browser's own setting), light
+# or dark. Overridable at runtime from /admin.
+theme: system
+
 # How long a fetched day is reused before WebUntis is asked again.
 # Overridable at runtime from /admin.
 cache_ttl: 300
@@ -63,7 +67,10 @@ students:
       # WebUntis lists every parallel course of a year group for a student
       # (Religion vs. Praktische Philosophie, the AG slot, ...). List the
       # subjects this student does not attend, exactly as they show on the
-      # dashboard, and they are dropped.
+      # dashboard, and they are dropped. Easier done from /admin, which
+      # shows this student's actual subjects as a checklist rather than
+      # requiring the exact string here; see "Changing settings without
+      # editing the config" in the README.
       # hide_subjects: ['07_ER', 'AG_Garten']
 
     - name: Jonas

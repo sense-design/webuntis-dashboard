@@ -79,13 +79,17 @@ the token from the config to disable the route entirely.
 
 ### Changing settings without editing the config
 
-Language, cache/refresh timing and the optional features can also be changed
-from a small form at `/admin?token=<admin_token>`, set the same way as
-`setup_token` above. Saves go to `var/settings.yaml`, not `config/untis.yaml`
-— that file, and the credentials in it, are never written to by the app.
-A saved setting wins over the matching key in `config/untis.yaml`; delete
-`var/settings.yaml` (or clear `admin_token` to lock the route) to fall back
-to the config file again.
+Language, light/dark appearance, cache/refresh timing, the optional
+features, and which subjects each student has hidden can all be changed
+from a small form at
+`/admin?token=<admin_token>`, set the same way as `setup_token` above. The
+subject checklist is built live from each student's own WebUntis timetable
+over the next two weeks, so there is nothing to type by hand there either.
+Saves go to `var/settings.yaml`, not `config/untis.yaml` — that file, and
+the credentials in it, are never written to by the app. A saved setting
+wins over the matching key in `config/untis.yaml`; delete `var/settings.yaml`
+(or clear `admin_token` to lock the route) to fall back to the config file
+again.
 
 ## Deployment
 
@@ -112,6 +116,7 @@ and should be `chmod 600` and owned by the PHP-FPM user.
 | `refresh_seconds` | `600` | Browser auto-reload interval; `0` disables it |
 | `timezone` | `Europe/Berlin` | Decides which day "today" is |
 | `locale` | `en` | UI language, `en` or `de` |
+| `theme` | `system` | `system`, `light` or `dark` |
 | `features.homework` | `true` | Homework view and its header tab |
 | `features.exams` | `true` | Exams view and its header tab |
 | `features.free_periods` | `true` | Free-period markers in the timetable |
@@ -185,9 +190,9 @@ The home screen label comes from `app.name` in the translation catalogues.
 - Substitutions show the teacher who was replaced when WebUntis reports it.
 - One student failing does not break the page. The error appears in that
   student's column and the other columns still render.
-- The page follows the system's light/dark setting automatically. There is
-  no in-app toggle; every colour is a CSS custom property, redeclared once
-  for dark mode.
+- The page follows the system's light/dark setting by default; `theme` (see
+  Options, or `/admin`) pins it to light or dark instead. Every colour is a
+  CSS custom property, redeclared once for dark mode.
 
 ## Possible next steps
 
