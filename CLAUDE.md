@@ -26,6 +26,13 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
   the private `settings()` overlay. Do not add a form field for anything
   that lives only in `untis.yaml` (accounts, students, server/school,
   timezone, either token) — those stay a manual edit on purpose.
+- Marking homework done (`/homework/{id}/done` and `/homework/{id}/open`) is
+  purely local, the same "layer state in `var/`, never touch WebUntis or
+  `untis.yaml`" pattern as `/admin` settings — see `HomeworkTracker`. It is
+  intentionally not token-gated like `/admin`: anyone who can load the
+  dashboard (already restricted at the network level, per the README) can
+  tick a box, since this is meant for everyday use by the whole family, not
+  a maintenance action.
 
 ## Gotchas
 

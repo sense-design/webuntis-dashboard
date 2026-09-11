@@ -8,6 +8,7 @@ use App\I18n\Translator;
 use App\Untis\ConfigLoader;
 use App\Untis\Exam;
 use App\Untis\Homework;
+use App\Untis\HomeworkTracker;
 use App\Untis\Lesson;
 use App\Untis\TimetableProvider;
 use App\Untis\UntisException;
@@ -33,6 +34,7 @@ final class DashboardController extends AbstractController
         private readonly TimetableProvider $provider,
         private readonly ConfigLoader $config,
         private readonly Translator $translator,
+        private readonly HomeworkTracker $homeworkTracker,
     ) {
     }
 
@@ -91,8 +93,10 @@ final class DashboardController extends AbstractController
     }
 
     /**
-     * The homework view: every student's outstanding homework, sorted by due
-     * date. It has no day pager because homework is not day-scoped.
+     * The homework view: every student's still-open homework, sorted by due
+     * date. It has no day pager because homework is not day-scoped. Done
+     * items live on their own page (homeworkDone()) rather than piling up
+     * here as the list grows.
      *
      * Guarded by the `features.homework` config key; disabled, the route
      * behaves as if it did not exist, same as `/setup` without its token.
@@ -106,26 +110,24 @@ final class DashboardController extends AbstractController
 
         $timezone = $this->config->timezone();
         $today = new \DateTimeImmutable('today', $timezone);
+        $toArray = fn (Homework $homework): array => $this->homeworkToArray($homework, $today);
 
-        $students = $this->provider->fetchHomework();
+        $students = $this->fetchAndPruneHomework();
+        $openCount = 0;
+        $doneCount = 0;
         foreach ($students as $index => $student) {
-            $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
-            $students[$index]['homework'] = array_map(
-                fn (Homework $homework): array => [
-                    'subject' => $homework->subject,
-                    'text' => $homework->text,
-                    'remark' => $homework->remark,
-                    'teacher' => $homework->teacher,
-                    'due' => $this->formatDayCompact($homework->dueOn),
-                    'overdue' => $homework->isOverdue($today),
-                ],
-                $student['homework'],
-            );
+            [$open, $done] = $this->homeworkTracker->split($student['homework']);
+            $openCount += \count($open);
+            $doneCount += \count($done);
+            $students[$index]['homework_open'] = array_map($toArray, $open);
+            unset($students[$index]['homework']);
         }
 
         return $this->render('dashboard.html.twig', [
             'view' => 'homework',
             'students' => $students,
+            'homework_open_count' => $openCount,
+            'homework_done_count' => $doneCount,
             'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
@@ -133,6 +135,79 @@ final class DashboardController extends AbstractController
             'exams_enabled' => $this->config->examsEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
+    }
+
+    /**
+     * The done-homework view: every student's ticked-off homework, split out
+     * to its own page so the everyday /homework list does not keep growing
+     * with things that no longer need attention.
+     *
+     * Guarded the same way /homework is.
+     */
+    #[Route('/homework/done', name: 'homework_done_list', methods: ['GET'])]
+    public function homeworkDone(): Response
+    {
+        if (!$this->config->homeworkEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
+        $timezone = $this->config->timezone();
+        $today = new \DateTimeImmutable('today', $timezone);
+        $toArray = fn (Homework $homework): array => $this->homeworkToArray($homework, $today);
+
+        $students = $this->fetchAndPruneHomework();
+        $openCount = 0;
+        $doneCount = 0;
+        foreach ($students as $index => $student) {
+            [$open, $done] = $this->homeworkTracker->split($student['homework']);
+            $openCount += \count($open);
+            $doneCount += \count($done);
+            $students[$index]['homework_done'] = array_map($toArray, $done);
+            unset($students[$index]['homework']);
+        }
+
+        return $this->render('dashboard.html.twig', [
+            'view' => 'homework_done',
+            'students' => $students,
+            'homework_open_count' => $openCount,
+            'homework_done_count' => $doneCount,
+            'is_today' => true,
+            'refresh_seconds' => $this->config->refreshSeconds(),
+            'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            'homework_enabled' => true,
+            'exams_enabled' => $this->config->examsEnabled(),
+            'admin_token' => $this->adminToken(),
+        ]);
+    }
+
+    /**
+     * Ticks one homework item off, purely on the dashboard - see
+     * HomeworkTracker. WebUntis itself is never told, so the official app
+     * still shows it as outstanding.
+     */
+    #[Route('/homework/{id}/done', name: 'homework_done', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function markHomeworkDone(int $id): Response
+    {
+        if (!$this->config->homeworkEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->homeworkTracker->markDone($id);
+
+        return $this->redirectToRoute('homework');
+    }
+
+    /** Undoes markHomeworkDone(): the item goes back to "still open". */
+    #[Route('/homework/{id}/open', name: 'homework_open', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function markHomeworkOpen(int $id): Response
+    {
+        if (!$this->config->homeworkEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->homeworkTracker->markOpen($id);
+
+        return $this->redirectToRoute('homework_done_list');
     }
 
     /**
@@ -345,5 +420,48 @@ final class DashboardController extends AbstractController
             'day' => $day->format('d'),
             'month' => $day->format('m'),
         ]);
+    }
+
+    /** @return array{id: int, subject: string, text: string, remark: string, teacher: string, due: string, overdue: bool} */
+    private function homeworkToArray(Homework $homework, \DateTimeImmutable $today): array
+    {
+        return [
+            'id' => $homework->id,
+            'subject' => $homework->subject,
+            'text' => $homework->text,
+            'remark' => $homework->remark,
+            'teacher' => $homework->teacher,
+            'due' => $this->formatDayCompact($homework->dueOn),
+            'overdue' => $homework->isOverdue($today),
+        ];
+    }
+
+    /**
+     * Every student's homework as WebUntis returns it, plus the accent
+     * colour, with the local "done" tracker pruned of ids that no longer
+     * show up anywhere. Shared by homework() and homeworkDone(), which each
+     * then pick their half with HomeworkTracker::split().
+     *
+     * @return list<array{name: string, homework: list<Homework>, error: ?string, accent: string}>
+     */
+    private function fetchAndPruneHomework(): array
+    {
+        $students = $this->provider->fetchHomework();
+
+        // Prune with every student's ids together - pruning against one
+        // student's list alone would drop the marks belonging to the others.
+        $allIds = [];
+        foreach ($students as $student) {
+            foreach ($student['homework'] as $homework) {
+                $allIds[] = $homework->id;
+            }
+        }
+        $this->homeworkTracker->prune($allIds);
+
+        foreach ($students as $index => $student) {
+            $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+        }
+
+        return $students;
     }
 }

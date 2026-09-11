@@ -60,6 +60,42 @@ body {
     font-weight: 550;
 }
 
+/* Homework/done toggle, a lighter sub-navigation below the main tabs
+   (.views). A segmented-control look keeps it visually subordinate rather
+   than competing with them, and reads as a toggle rather than a plain link. */
+.subviews {
+    display: inline-flex;
+    gap: 0.2rem;
+    margin-top: 1rem;
+    padding: 0.2rem;
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 0.875rem;
+}
+
+.subviews__link {
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.subviews__link:hover,
+.subviews__link:focus-visible {
+    color: var(--ink);
+}
+
+.subviews__link--active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+.subviews__link--active:hover,
+.subviews__link--active:focus-visible {
+    color: #fff;
+}
+
 /* Columns -------------------------------------------------------------- */
 
 .columns {
@@ -209,6 +245,9 @@ body {
 }
 
 .homework__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
     padding: 0.85rem 0;
     border-top: 1px solid var(--rule);
 }
@@ -216,6 +255,43 @@ body {
 .homework__item:first-child {
     border-top: 0;
     padding-top: 0;
+}
+
+.homework__check-form {
+    flex: none;
+    margin-top: 0.2rem;
+}
+
+.homework__check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    padding: 0;
+    border: 2px solid var(--rule);
+    border-radius: 50%;
+    background: var(--card);
+    color: transparent;
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.homework__check:hover,
+.homework__check:focus-visible {
+    border-color: var(--accent);
+}
+
+.homework__check--done {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+}
+
+.homework__body {
+    flex: 1;
+    min-width: 0;
 }
 
 .homework__head {
@@ -251,6 +327,18 @@ body {
 .homework__remark {
     margin: 0.2rem 0 0;
     font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.homework__item--done .homework__subject {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    color: var(--muted);
+    font-weight: 550;
+}
+
+.homework__item--done .homework__text,
+.homework__item--done .homework__remark {
     color: var(--muted);
 }
 

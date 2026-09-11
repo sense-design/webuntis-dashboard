@@ -31,6 +31,12 @@ homework:
     title: 'Hausaufgaben'
     none: 'Keine offenen Hausaufgaben.'
     due: 'fällig {date}'
+    none_done: 'Noch keine erledigten Hausaufgaben.'
+    done_title: 'Erledigt'
+    open_tab: 'Offen ({count})'
+    done_tab: 'Erledigt ({count})'
+    mark_done: 'Als erledigt markieren'
+    mark_open: 'Wieder als offen markieren'
 
 exams:
     title: 'Prüfungen'

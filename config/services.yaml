@@ -1,6 +1,7 @@
 parameters:
     untis.config_file: '%kernel.project_dir%/config/untis.yaml'
     untis.settings_file: '%kernel.project_dir%/var/settings.yaml'
+    untis.homework_done_file: '%kernel.project_dir%/var/homework-done.yaml'
 
 services:
     _defaults:
@@ -23,6 +24,10 @@ services:
         arguments:
             $configFile: '%untis.config_file%'
             $settingsFile: '%untis.settings_file%'
+
+    App\Untis\HomeworkTracker:
+        arguments:
+            $file: '%untis.homework_done_file%'
 
     App\I18n\Translator:
         arguments:
