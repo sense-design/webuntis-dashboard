@@ -55,7 +55,10 @@ final class DashboardController extends AbstractController
         $students = $this->provider->fetchDay($day);
         foreach ($students as $index => $student) {
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
-            $students[$index]['entries'] = $this->withFreePeriods($student['lessons']);
+            $students[$index]['entries'] = $this->withFreePeriods(
+                $student['lessons'],
+                $this->config->freePeriodsEnabled(),
+            );
         }
 
         $changes = 0;
@@ -81,16 +84,25 @@ final class DashboardController extends AbstractController
             'changes' => $changes,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            'homework_enabled' => $this->config->homeworkEnabled(),
+            'exams_enabled' => $this->config->examsEnabled(),
         ]);
     }
 
     /**
      * The homework view: every student's outstanding homework, sorted by due
      * date. It has no day pager because homework is not day-scoped.
+     *
+     * Guarded by the `features.homework` config key; disabled, the route
+     * behaves as if it did not exist, same as `/setup` without its token.
      */
     #[Route('/homework', name: 'homework', methods: ['GET'])]
     public function homework(): Response
     {
+        if (!$this->config->homeworkEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
         $timezone = $this->config->timezone();
         $today = new \DateTimeImmutable('today', $timezone);
 
@@ -116,16 +128,25 @@ final class DashboardController extends AbstractController
             'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            'homework_enabled' => true,
+            'exams_enabled' => $this->config->examsEnabled(),
         ]);
     }
 
     /**
      * The exams view: every student's upcoming exams, sorted by date. It has
      * no day pager because, like homework, it is not day-scoped.
+     *
+     * Guarded by the `features.exams` config key; disabled, the route
+     * behaves as if it did not exist, same as `/setup` without its token.
      */
     #[Route('/exams', name: 'exams', methods: ['GET'])]
     public function exams(): Response
     {
+        if (!$this->config->examsEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
         $timezone = $this->config->timezone();
 
         $students = $this->provider->fetchExams();
@@ -153,6 +174,8 @@ final class DashboardController extends AbstractController
             'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            'homework_enabled' => $this->config->homeworkEnabled(),
+            'exams_enabled' => true,
         ]);
     }
 
@@ -232,17 +255,19 @@ final class DashboardController extends AbstractController
      * A student's lessons with a free-period marker spliced in wherever two
      * of them are at least FREE_PERIOD_MINUTES apart, so a schedule with a
      * gap in the middle reads as "next lesson at 09:50" rather than making
-     * the reader compare every end and start time themselves.
+     * the reader compare every end and start time themselves. Disabled via
+     * the `features.free_periods` config key, this just wraps the lessons
+     * without looking for gaps.
      *
      * @param list<Lesson> $lessons
      *
      * @return list<array{type: string, lesson: ?Lesson, until: ?string}>
      */
-    private function withFreePeriods(array $lessons): array
+    private function withFreePeriods(array $lessons, bool $enabled): array
     {
         $entries = [];
         foreach ($lessons as $index => $lesson) {
-            if ($index > 0) {
+            if ($enabled && $index > 0) {
                 $gap = $this->toMinutes($lesson->start) - $this->toMinutes($lessons[$index - 1]->end);
                 if ($gap >= self::FREE_PERIOD_MINUTES) {
                     $entries[] = ['type' => 'gap', 'lesson' => null, 'until' => $lesson->start];

@@ -94,6 +94,14 @@ and should be `chmod 600` and owned by the PHP-FPM user.
 | `refresh_seconds` | `600` | Browser auto-reload interval; `0` disables it |
 | `timezone` | `Europe/Berlin` | Decides which day "today" is |
 | `locale` | `en` | UI language, `en` or `de` |
+| `features.homework` | `true` | Homework view and its header tab |
+| `features.exams` | `true` | Exams view and its header tab |
+| `features.free_periods` | `true` | Free-period markers in the timetable |
+
+Every feature defaults to on; set the ones you don't want under `features:` in
+`config/untis.yaml` (see `untis.yaml.dist`). A disabled `/homework` or
+`/exams` 404s rather than rendering empty, the same way `/setup` does without
+its token, and the header only shows tabs for the views that are enabled.
 
 `?day=tomorrow` or `?day=2026-09-14` shows another day. The header has a pager
 to the previous and next school day; Saturdays and Sundays are stepped over.

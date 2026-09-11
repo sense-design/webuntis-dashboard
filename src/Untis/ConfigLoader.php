@@ -84,4 +84,23 @@ final class ConfigLoader
     {
         return (string) ($this->load()['locale'] ?? 'en');
     }
+
+    /**
+     * Every optional feature is on by default; `features:` in the config
+     * only needs to list the ones to switch off.
+     */
+    public function homeworkEnabled(): bool
+    {
+        return (bool) ($this->load()['features']['homework'] ?? true);
+    }
+
+    public function examsEnabled(): bool
+    {
+        return (bool) ($this->load()['features']['exams'] ?? true);
+    }
+
+    public function freePeriodsEnabled(): bool
+    {
+        return (bool) ($this->load()['features']['free_periods'] ?? true);
+    }
 }

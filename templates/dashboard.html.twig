@@ -39,17 +39,23 @@
             {%- endif -%}
         </h1>
 
-        <nav class="views" aria-label="{{ t('nav.timetable') }} / {{ t('nav.homework') }} / {{ t('nav.exams') }}">
-            <a class="views__link{{ view == 'timetable' ? ' views__link--active' : '' }}"
-               href="{{ path('dashboard') }}"
-               {%- if view == 'timetable' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
-            <a class="views__link{{ view == 'homework' ? ' views__link--active' : '' }}"
-               href="{{ path('homework') }}"
-               {%- if view == 'homework' %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
-            <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
-               href="{{ path('exams') }}"
-               {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
-        </nav>
+        {% if homework_enabled or exams_enabled %}
+            <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}">
+                <a class="views__link{{ view == 'timetable' ? ' views__link--active' : '' }}"
+                   href="{{ path('dashboard') }}"
+                   {%- if view == 'timetable' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
+                {% if homework_enabled %}
+                    <a class="views__link{{ view == 'homework' ? ' views__link--active' : '' }}"
+                       href="{{ path('homework') }}"
+                       {%- if view == 'homework' %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
+                {% endif %}
+                {% if exams_enabled %}
+                    <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
+                       href="{{ path('exams') }}"
+                       {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
+                {% endif %}
+            </nav>
+        {% endif %}
 
         {% if view == 'timetable' %}
             <nav class="pager" aria-label="{{ t('header.pager') }}">

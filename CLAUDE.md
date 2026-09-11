@@ -14,6 +14,12 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
 - `config/untis.yaml` holds credentials and is never committed.
 - CSS is plain CSS in `public/assets/style.css`. No build pipeline, no
   framework, no utility classes.
+- Optional features (homework, exams, free-period markers) are on by default
+  and switched off individually via `features.<name>` in `untis.yaml`, read
+  through `ConfigLoader::<name>Enabled()`. A disabled view route 404s (see
+  `DashboardController::homework()`/`exams()`) rather than rendering empty; a
+  disabled display-only feature (free periods) just renders without it. A new
+  optional feature should follow the same shape.
 
 ## Gotchas
 
