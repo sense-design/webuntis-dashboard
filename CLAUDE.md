@@ -37,6 +37,12 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
   Two YAML catalogues only (`en`, `de`); keep their keys in sync. Keys are dot
   paths into the tree. The language is app-wide from `locale` in `untis.yaml`
   (`en` if unset or unknown); there is no per-request switch.
+- The `<link rel="manifest">` tag carries `crossorigin="use-credentials"`. Web
+  app manifest fetches omit credentials by default even for same-origin
+  requests (unlike a normal `<link>`/`<img>`), so behind the HTTP basic auth
+  the README recommends, the browser would otherwise get a 401 for
+  `/manifest.webmanifest` and never load the home-screen icons. Do not drop
+  this attribute as dead weight.
 - `/WebUntis/api/exams` filters by `klasseId`, not by student, so
   `getExams()` fetches with `klasseId=-1` and matches each exam's own
   `assignedStudents` list, mirroring how `getHomework()` matches `records`.
