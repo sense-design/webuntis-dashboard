@@ -4,8 +4,9 @@ A single page showing today's WebUntis timetable for several students side by
 side. Built for a phone at breakfast or a small screen in the hallway: what is
 on today, and what changed.
 
-Symfony 7, PHP-FPM, nginx. No database, no queue, no build step. The only state
-is a filesystem cache and the admin-saved settings, both under `var/`.
+Symfony 7, PHP-FPM, nginx. No database, no queue, no build step. The only
+state - a filesystem cache, the admin-saved settings, and which homework is
+ticked off - lives under `var/`.
 
 | Timetable | Homework |
 | --- | --- |
@@ -119,10 +120,21 @@ to the previous and next school day; Saturdays and Sundays are stepped over.
 
 `/homework` switches to the homework list: every student's outstanding
 homework, sorted by due date, read from the mobile app's
-`/WebUntis/api/homeworks/lessons` endpoint. Completed assignments are dropped.
-That feed names subjects by short code only, so the next three weeks of
-timetable are read alongside it to show the same long name the timetable does
-("07_WP_BI" becomes "Biologie").
+`/WebUntis/api/homeworks/lessons` endpoint. Completed assignments (as
+WebUntis itself sees them) are dropped. That feed names subjects by short
+code only, so the next three weeks of timetable are read alongside it to
+show the same long name the timetable does ("07_WP_BI" becomes "Biologie").
+
+Each item has a checkbox to tick it off from the dashboard; done items move
+to their own page, `/homework/done`, linked from `/homework` once there is
+at least one, so the everyday list does not grow long with things that no
+longer need attention. This is purely local (no login needed - anyone who
+can load the page can tick a box): it is stored in `var/homework-done.yaml`,
+keyed by WebUntis' own id for the assignment, and never written back to
+WebUntis, so the official app still shows it as outstanding. Ids that stop
+showing up in a fetch (the assignment aged out of the fetch window, or a
+student ticked it off for real in the official app) are pruned from that
+file automatically.
 
 `/exams` switches to the exam list: every student's exams over the next 60
 days, sorted by date, read from the mobile app's `/WebUntis/api/exams`
@@ -181,6 +193,7 @@ src/Untis/ConfigLoader.php      Reads config/untis.yaml, layers var/settings.yam
 src/Untis/TimetableProvider.php Session reuse per account, caching, error isolation
 src/Untis/Lesson.php            One timetable block
 src/Untis/Homework.php          One outstanding homework assignment
+src/Untis/HomeworkTracker.php   Local "done" marks, layered over Homework, never synced to WebUntis
 src/Untis/Exam.php              One upcoming exam
 src/Controller/DashboardController.php  Dashboard, homework, exams, manifest, /setup helper
 src/Controller/AdminController.php      /admin settings form, reads and saves via ConfigLoader

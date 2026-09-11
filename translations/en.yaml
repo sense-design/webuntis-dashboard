@@ -31,6 +31,12 @@ homework:
     title: 'Homework'
     none: 'No open homework.'
     due: 'due {date}'
+    none_done: 'No done homework yet.'
+    done_title: 'Done'
+    open_tab: 'Open ({count})'
+    done_tab: 'Done ({count})'
+    mark_done: 'Mark as done'
+    mark_open: 'Mark as open again'
 
 exams:
     title: 'Exams'

@@ -7,6 +7,8 @@
     <title>
         {%- if view == 'homework' -%}
             {{ t('homework.title') }}
+        {%- elseif view == 'homework_done' -%}
+            {{ t('homework.done_title') }}
         {%- elseif view == 'exams' -%}
             {{ t('exams.title') }}
         {%- else -%}
@@ -32,6 +34,8 @@
         <h1>
             {%- if view == 'homework' -%}
                 {{ t('homework.title') }}
+            {%- elseif view == 'homework_done' -%}
+                {{ t('homework.done_title') }}
             {%- elseif view == 'exams' -%}
                 {{ t('exams.title') }}
             {%- else -%}
@@ -45,15 +49,26 @@
                    href="{{ path('dashboard') }}"
                    {%- if view == 'timetable' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
                 {% if homework_enabled %}
-                    <a class="views__link{{ view == 'homework' ? ' views__link--active' : '' }}"
+                    <a class="views__link{{ view in ['homework', 'homework_done'] ? ' views__link--active' : '' }}"
                        href="{{ path('homework') }}"
-                       {%- if view == 'homework' %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
+                       {%- if view in ['homework', 'homework_done'] %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
                 {% endif %}
                 {% if exams_enabled %}
                     <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
                        href="{{ path('exams') }}"
                        {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
                 {% endif %}
+            </nav>
+        {% endif %}
+
+        {% if view in ['homework', 'homework_done'] %}
+            <nav class="subviews" aria-label="{{ t('homework.title') }}">
+                <a class="subviews__link{{ view == 'homework' ? ' subviews__link--active' : '' }}"
+                   href="{{ path('homework') }}"
+                   {%- if view == 'homework' %} aria-current="page"{% endif %}>{{ t('homework.open_tab', {count: homework_open_count}) }}</a>
+                <a class="subviews__link{{ view == 'homework_done' ? ' subviews__link--active' : '' }}"
+                   href="{{ path('homework_done_list') }}"
+                   {%- if view == 'homework_done' %} aria-current="page"{% endif %}>{{ t('homework.done_tab', {count: homework_done_count}) }}</a>
             </nav>
         {% endif %}
 
@@ -91,20 +106,49 @@
                         {{ t('student.error', {message: student.error}) }}
                     </p>
                 {% elseif view == 'homework' %}
-                    {% if student.homework is empty %}
+                    {% if student.homework_open is empty %}
                         <p class="empty">{{ t('homework.none') }}</p>
                     {% else %}
                         <ol class="homework">
-                            {% for task in student.homework %}
+                            {% for task in student.homework_open %}
                                 <li class="homework__item">
-                                    <div class="homework__head">
-                                        <span class="homework__subject">{{ task.subject }}</span>
-                                        <span class="homework__due{{ task.overdue ? ' homework__due--overdue' : '' }}">{{ t('homework.due', {date: task.due}) }}</span>
+                                    <form method="post" action="{{ path('homework_done', {id: task.id}) }}" class="homework__check-form">
+                                        <button type="submit" class="homework__check" aria-label="{{ t('homework.mark_done') }}"></button>
+                                    </form>
+                                    <div class="homework__body">
+                                        <div class="homework__head">
+                                            <span class="homework__subject">{{ task.subject }}</span>
+                                            <span class="homework__due{{ task.overdue ? ' homework__due--overdue' : '' }}">{{ t('homework.due', {date: task.due}) }}</span>
+                                        </div>
+                                        <p class="homework__text">{{ task.text }}</p>
+                                        {% if task.remark %}
+                                            <p class="homework__remark">{{ task.remark }}</p>
+                                        {% endif %}
                                     </div>
-                                    <p class="homework__text">{{ task.text }}</p>
-                                    {% if task.remark %}
-                                        <p class="homework__remark">{{ task.remark }}</p>
-                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% endif %}
+                {% elseif view == 'homework_done' %}
+                    {% if student.homework_done is empty %}
+                        <p class="empty">{{ t('homework.none_done') }}</p>
+                    {% else %}
+                        <ol class="homework homework--done">
+                            {% for task in student.homework_done %}
+                                <li class="homework__item homework__item--done">
+                                    <form method="post" action="{{ path('homework_open', {id: task.id}) }}" class="homework__check-form">
+                                        <button type="submit" class="homework__check homework__check--done" aria-label="{{ t('homework.mark_open') }}">✓</button>
+                                    </form>
+                                    <div class="homework__body">
+                                        <div class="homework__head">
+                                            <span class="homework__subject">{{ task.subject }}</span>
+                                            <span class="homework__due">{{ t('homework.due', {date: task.due}) }}</span>
+                                        </div>
+                                        <p class="homework__text">{{ task.text }}</p>
+                                        {% if task.remark %}
+                                            <p class="homework__remark">{{ task.remark }}</p>
+                                        {% endif %}
+                                    </div>
                                 </li>
                             {% endfor %}
                         </ol>

@@ -288,6 +288,7 @@ final class UntisClient
             }
 
             $homework[] = new Homework(
+                id: $id,
                 subject: $subjects[(int) ($row['lessonId'] ?? 0)] ?? '',
                 text: trim((string) ($row['text'] ?? '')),
                 assignedOn: $this->parseDateStamp((int) ($row['date'] ?? 0)),
