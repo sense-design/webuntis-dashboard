@@ -88,41 +88,46 @@
                     <p class="empty">{{ t('student.empty') }}</p>
                 {% else %}
                     <ol class="lessons">
-                        {% for lesson in student.lessons %}
-                            <li class="lesson{{ lesson.isCancelled ? ' lesson--cancelled' : '' }}{{ lesson.code == 'irregular' ? ' lesson--shifted' : '' }}">
-                                <div class="lesson__time">
-                                    <span class="lesson__start">{{ lesson.start }}</span>
-                                    <span class="lesson__end">{{ lesson.end }}</span>
-                                </div>
-                                <div class="lesson__body">
-                                    <h3 class="lesson__subject">{{ lesson.subject }}</h3>
+                        {% for entry in student.entries %}
+                            {% if entry.type == 'gap' %}
+                                <li class="gap">{{ t('lesson.free', {time: entry.until}) }}</li>
+                            {% else %}
+                                {% set lesson = entry.lesson %}
+                                <li class="lesson{{ lesson.isCancelled ? ' lesson--cancelled' : '' }}{{ lesson.code == 'irregular' ? ' lesson--shifted' : '' }}">
+                                    <div class="lesson__time">
+                                        <span class="lesson__start">{{ lesson.start }}</span>
+                                        <span class="lesson__end">{{ lesson.end }}</span>
+                                    </div>
+                                    <div class="lesson__body">
+                                        <h3 class="lesson__subject">{{ lesson.subject }}</h3>
 
-                                    <p class="lesson__meta">
-                                        {% if lesson.teachers is not empty %}
-                                            <span>{{ lesson.teacherLine }}</span>
-                                        {% endif %}
-                                        {% if lesson.rooms is not empty %}
-                                            <span class="lesson__room">{{ lesson.roomLine }}</span>
-                                        {% endif %}
-                                    </p>
-
-                                    {% if lesson.isCancelled %}
-                                        <p class="lesson__flag">{{ t('lesson.cancelled') }}</p>
-                                    {% elseif lesson.code == 'irregular' %}
-                                        <p class="lesson__flag">
-                                            {% if lesson.replacedTeachers is not empty %}
-                                                {{ t('lesson.substitution_for', {teachers: lesson.replacedTeachers|join(', ')}) }}
-                                            {% else %}
-                                                {{ t('lesson.substitution') }}
+                                        <p class="lesson__meta">
+                                            {% if lesson.teachers is not empty %}
+                                                <span>{{ lesson.teacherLine }}</span>
+                                            {% endif %}
+                                            {% if lesson.rooms is not empty %}
+                                                <span class="lesson__room">{{ lesson.roomLine }}</span>
                                             {% endif %}
                                         </p>
-                                    {% endif %}
 
-                                    {% for note in lesson.notes %}
-                                        <p class="lesson__note">{{ note }}</p>
-                                    {% endfor %}
-                                </div>
-                            </li>
+                                        {% if lesson.isCancelled %}
+                                            <p class="lesson__flag">{{ t('lesson.cancelled') }}</p>
+                                        {% elseif lesson.code == 'irregular' %}
+                                            <p class="lesson__flag">
+                                                {% if lesson.replacedTeachers is not empty %}
+                                                    {{ t('lesson.substitution_for', {teachers: lesson.replacedTeachers|join(', ')}) }}
+                                                {% else %}
+                                                    {{ t('lesson.substitution') }}
+                                                {% endif %}
+                                            </p>
+                                        {% endif %}
+
+                                        {% for note in lesson.notes %}
+                                            <p class="lesson__note">{{ note }}</p>
+                                        {% endfor %}
+                                    </div>
+                                </li>
+                            {% endif %}
                         {% endfor %}
                     </ol>
                 {% endif %}
