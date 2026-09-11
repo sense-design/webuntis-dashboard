@@ -5,7 +5,7 @@ side. Built for a phone at breakfast or a small screen in the hallway: what is
 on today, and what changed.
 
 Symfony 7, PHP-FPM, nginx. No database, no queue, no build step. The only state
-is a filesystem cache under `var/`.
+is a filesystem cache and the admin-saved settings, both under `var/`.
 
 | Timetable | Homework |
 | --- | --- |
@@ -76,6 +76,16 @@ The `/setup` route echoes account details, so it stays locked behind
 `setup_token`: any request without a matching `?token=` gets a plain 404. Clear
 the token from the config to disable the route entirely.
 
+### Changing settings without editing the config
+
+Language, cache/refresh timing and the optional features can also be changed
+from a small form at `/admin?token=<admin_token>`, set the same way as
+`setup_token` above. Saves go to `var/settings.yaml`, not `config/untis.yaml`
+— that file, and the credentials in it, are never written to by the app.
+A saved setting wins over the matching key in `config/untis.yaml`; delete
+`var/settings.yaml` (or clear `admin_token` to lock the route) to fall back
+to the config file again.
+
 ## Deployment
 
 `nginx.conf.example` is a complete vhost. Document root is `public/`, everything
@@ -99,9 +109,10 @@ and should be `chmod 600` and owned by the PHP-FPM user.
 | `features.free_periods` | `true` | Free-period markers in the timetable |
 
 Every feature defaults to on; set the ones you don't want under `features:` in
-`config/untis.yaml` (see `untis.yaml.dist`). A disabled `/homework` or
-`/exams` 404s rather than rendering empty, the same way `/setup` does without
-its token, and the header only shows tabs for the views that are enabled.
+`config/untis.yaml` (see `untis.yaml.dist`), or flip them from `/admin` (see
+above). A disabled `/homework` or `/exams` 404s rather than rendering empty,
+the same way `/setup` does without its token, and the header only shows tabs
+for the views that are enabled.
 
 `?day=tomorrow` or `?day=2026-09-14` shows another day. The header has a pager
 to the previous and next school day; Saturdays and Sundays are stepped over.
@@ -166,16 +177,18 @@ The home screen label comes from `app.name` in the translation catalogues.
 ```
 src/Untis/UntisClient.php       JSON-RPC + REST calls, both login paths, normalisation
 src/Untis/Totp.php              RFC 6238 tokens from the app secret
-src/Untis/ConfigLoader.php      Reads config/untis.yaml
+src/Untis/ConfigLoader.php      Reads config/untis.yaml, layers var/settings.yaml over it
 src/Untis/TimetableProvider.php Session reuse per account, caching, error isolation
 src/Untis/Lesson.php            One timetable block
 src/Untis/Homework.php          One outstanding homework assignment
 src/Untis/Exam.php              One upcoming exam
 src/Controller/DashboardController.php  Dashboard, homework, exams, manifest, /setup helper
+src/Controller/AdminController.php      /admin settings form, reads and saves via ConfigLoader
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function
 translations/{en,de}.yaml      UI strings, English and German
 templates/dashboard.html.twig   The page
+templates/admin.html.twig       The settings form
 public/assets/style.css         The styles
 public/icon.svg                 Home screen / favicon source (PNGs generated from it)
 ```

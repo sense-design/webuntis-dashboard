@@ -1,5 +1,6 @@
 parameters:
     untis.config_file: '%kernel.project_dir%/config/untis.yaml'
+    untis.settings_file: '%kernel.project_dir%/var/settings.yaml'
 
 services:
     _defaults:
@@ -21,6 +22,7 @@ services:
     App\Untis\ConfigLoader:
         arguments:
             $configFile: '%untis.config_file%'
+            $settingsFile: '%untis.settings_file%'
 
     App\I18n\Translator:
         arguments:

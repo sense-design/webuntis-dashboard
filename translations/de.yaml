@@ -37,6 +37,23 @@ exams:
     none: 'Keine bevorstehenden Prüfungen.'
     on: 'am {date}'
 
+admin:
+    title: 'Einstellungen'
+    back: 'Zurück zum Dashboard'
+    locale: 'Sprache'
+    locale_en: 'Englisch'
+    locale_de: 'Deutsch'
+    cache_ttl: 'Cache-Dauer (Sekunden)'
+    cache_ttl_hint: 'Wie lange ein abgerufener Tag wiederverwendet wird, bevor erneut bei WebUntis angefragt wird.'
+    refresh_seconds: 'Browser-Aktualisierungsintervall (Sekunden)'
+    refresh_seconds_hint: 'Auf 0 setzen, um das automatische Neuladen der Seite abzuschalten.'
+    features: 'Funktionen'
+    feature_homework: 'Hausaufgaben'
+    feature_exams: 'Prüfungen'
+    feature_free_periods: 'Freistunden-Markierungen'
+    save: 'Speichern'
+    saved: 'Einstellungen gespeichert.'
+
 nav:
     timetable: 'Stundenplan'
     homework: 'Hausaufgaben'
@@ -48,6 +65,7 @@ header:
 footer:
     updated: 'Abgerufen um {time}'
     today: 'Zurück zu heute'
+    admin: 'Einstellungen'
     tagline: 'Mit {heart} für Open Source gebaut'
     source: 'Quellcode auf GitHub'
     author: 'von {name}'
