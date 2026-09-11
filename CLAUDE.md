@@ -15,11 +15,17 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
 - CSS is plain CSS in `public/assets/style.css`. No build pipeline, no
   framework, no utility classes.
 - Optional features (homework, exams, free-period markers) are on by default
-  and switched off individually via `features.<name>` in `untis.yaml`, read
-  through `ConfigLoader::<name>Enabled()`. A disabled view route 404s (see
-  `DashboardController::homework()`/`exams()`) rather than rendering empty; a
-  disabled display-only feature (free periods) just renders without it. A new
-  optional feature should follow the same shape.
+  and switched off individually via `features.<name>` in `untis.yaml`, or
+  from `/admin`, read through `ConfigLoader::<name>Enabled()`. A disabled
+  view route 404s (see `DashboardController::homework()`/`exams()`) rather
+  than rendering empty; a disabled display-only feature (free periods) just
+  renders without it. A new optional feature should follow the same shape.
+- `config/untis.yaml` is never written to by the app, only read. Anything a
+  user should be able to change at runtime (`/admin`) is layered on top of it
+  from `var/settings.yaml` instead, via `ConfigLoader::saveSettings()` /
+  the private `settings()` overlay. Do not add a form field for anything
+  that lives only in `untis.yaml` (accounts, students, server/school,
+  timezone, either token) — those stay a manual edit on purpose.
 
 ## Gotchas
 

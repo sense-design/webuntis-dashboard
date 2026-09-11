@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ t('admin.title') }}</title>
+    <link rel="stylesheet" href="{{ asset('assets/style.css') }}">
+    <link rel="icon" href="{{ asset('icon.svg') }}" type="image/svg+xml">
+    <meta name="theme-color" content="#ECEEF0">
+</head>
+<body>
+<main class="dashboard admin">
+
+    <header class="day">
+        <h1>{{ t('admin.title') }}</h1>
+    </header>
+
+    <div class="admin__card">
+        {% if saved %}
+            <p class="admin__notice">{{ t('admin.saved') }}</p>
+        {% endif %}
+
+        <form method="post" action="{{ path('admin', {token: token}) }}">
+            <div class="admin__field">
+                <label for="locale">{{ t('admin.locale') }}</label>
+                <select id="locale" name="locale">
+                    {% for code in locales %}
+                        <option value="{{ code }}"{{ settings.locale == code ? ' selected' : '' }}>{{ t('admin.locale_' ~ code) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="admin__field">
+                <label for="cache_ttl">{{ t('admin.cache_ttl') }}</label>
+                <input type="number" id="cache_ttl" name="cache_ttl" min="0" step="1" value="{{ settings.cache_ttl }}">
+                <p class="admin__hint">{{ t('admin.cache_ttl_hint') }}</p>
+            </div>
+
+            <div class="admin__field">
+                <label for="refresh_seconds">{{ t('admin.refresh_seconds') }}</label>
+                <input type="number" id="refresh_seconds" name="refresh_seconds" min="0" step="1" value="{{ settings.refresh_seconds }}">
+                <p class="admin__hint">{{ t('admin.refresh_seconds_hint') }}</p>
+            </div>
+
+            <fieldset class="admin__field">
+                <legend>{{ t('admin.features') }}</legend>
+                <label class="admin__checkbox">
+                    <input type="checkbox" name="feature_homework"{{ settings.features.homework ? ' checked' : '' }}>
+                    {{ t('admin.feature_homework') }}
+                </label>
+                <label class="admin__checkbox">
+                    <input type="checkbox" name="feature_exams"{{ settings.features.exams ? ' checked' : '' }}>
+                    {{ t('admin.feature_exams') }}
+                </label>
+                <label class="admin__checkbox">
+                    <input type="checkbox" name="feature_free_periods"{{ settings.features.free_periods ? ' checked' : '' }}>
+                    {{ t('admin.feature_free_periods') }}
+                </label>
+            </fieldset>
+
+            <div class="admin__actions">
+                <button type="submit">{{ t('admin.save') }}</button>
+                <a class="admin__back" href="{{ path('dashboard') }}">{{ t('admin.back') }}</a>
+            </div>
+        </form>
+    </div>
+
+</main>
+</body>
+</html>

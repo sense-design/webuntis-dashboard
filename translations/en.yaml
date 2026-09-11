@@ -37,6 +37,23 @@ exams:
     none: 'No upcoming exams.'
     on: 'on {date}'
 
+admin:
+    title: 'Settings'
+    back: 'Back to dashboard'
+    locale: 'Language'
+    locale_en: 'English'
+    locale_de: 'German'
+    cache_ttl: 'Cache duration (seconds)'
+    cache_ttl_hint: 'How long a fetched day is reused before WebUntis is asked again.'
+    refresh_seconds: 'Browser refresh interval (seconds)'
+    refresh_seconds_hint: 'Set to 0 to switch off the automatic page reload.'
+    features: 'Features'
+    feature_homework: 'Homework'
+    feature_exams: 'Exams'
+    feature_free_periods: 'Free-period markers'
+    save: 'Save'
+    saved: 'Settings saved.'
+
 nav:
     timetable: 'Timetable'
     homework: 'Homework'
@@ -48,6 +65,7 @@ header:
 footer:
     updated: 'Fetched at {time}'
     today: 'Back to today'
+    admin: 'Settings'
     tagline: 'Built with {heart} for open source'
     source: 'Source on GitHub'
     author: 'by {name}'

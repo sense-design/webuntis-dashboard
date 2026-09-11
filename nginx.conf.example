@@ -28,14 +28,23 @@ server {
     ssl_certificate     /etc/letsencrypt/live/untis.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/untis.example.com/privkey.pem;
 
-    # Restrict access. Pick one, or combine them.
-    #
+    # Restrict access. Pick one, or combine both for defense in depth.
+
+    # -- Option 1: IP allowlist --------------------------------------------
+    # A bare IPv4 address needs no mask (nginx treats it as /32). IPv6 is
+    # different: your ISP hands a whole prefix to the router, not one fixed
+    # address - the address your own devices use inside that prefix still
+    # varies (and rotates further with IPv6 privacy extensions), so allow
+    # the prefix, not a single /128, or you lock yourself out the next time
+    # it changes. Check your router's WAN status page for the exact prefix
+    # length; Telekom commonly hands out a /56.
+    # allow 203.0.113.4;          # static IPv4
+    # allow 2001:db8:abcd::/56;   # static IPv6 prefix
+    # deny  all;
+
+    # -- Option 2: HTTP basic auth -------------------------------------------
     # auth_basic           "WebUntis Dashboard";
     # auth_basic_user_file /etc/nginx/webuntis-dashboard.htpasswd;
-    #
-    # allow 192.0.2.0/24;
-    # allow 203.0.113.4;
-    # deny  all;
 
     location / {
         # Try the requested file, then hand everything to the front controller.

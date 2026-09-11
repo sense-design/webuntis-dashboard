@@ -200,6 +200,12 @@
                 <a href="{{ path('dashboard') }}">{{ t('footer.today') }}</a>
             {% endif %}
         </p>
+        {% if admin_token %}
+            <hr class="site-foot__rule">
+            <p class="site-foot__admin">
+                <a href="{{ path('admin', {token: admin_token}) }}">{{ t('footer.admin') }}</a>
+            </p>
+        {% endif %}
         <hr class="site-foot__rule">
         <p class="site-foot__tagline">{{ t('footer.tagline', {heart: '<span class="site-foot__heart" aria-hidden="true">♥</span>'})|raw }}</p>
         <p class="site-foot__meta">

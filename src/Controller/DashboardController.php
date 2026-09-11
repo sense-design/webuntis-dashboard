@@ -86,6 +86,7 @@ final class DashboardController extends AbstractController
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => $this->config->examsEnabled(),
+            'admin_token' => $this->adminToken(),
         ]);
     }
 
@@ -130,6 +131,7 @@ final class DashboardController extends AbstractController
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
             'homework_enabled' => true,
             'exams_enabled' => $this->config->examsEnabled(),
+            'admin_token' => $this->adminToken(),
         ]);
     }
 
@@ -176,6 +178,7 @@ final class DashboardController extends AbstractController
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => true,
+            'admin_token' => $this->adminToken(),
         ]);
     }
 
@@ -322,6 +325,16 @@ final class DashboardController extends AbstractController
             'month' => $day->format('m'),
             'year' => $day->format('Y'),
         ]);
+    }
+
+    /**
+     * The configured `/admin` token, or '' when none is set. Handed to the
+     * template so the footer link can be built from it; empty, the link is
+     * left out rather than pointing at a route that 404s anyway.
+     */
+    private function adminToken(): string
+    {
+        return (string) ($this->config->load()['admin_token'] ?? '');
     }
 
     /** Year-less date for homework due dates (e.g. "Fr, 11.09."). */

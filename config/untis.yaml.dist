@@ -8,18 +8,21 @@ school: my-school
 
 timezone: Europe/Berlin
 
-# UI language for the whole app: en or de.
+# UI language for the whole app: en or de. Overridable at runtime from
+# /admin (see admin_token below); the saved value then wins over this one.
 locale: en
 
 # How long a fetched day is reused before WebUntis is asked again.
+# Overridable at runtime from /admin.
 cache_ttl: 300
 
 # Browser auto-reload interval. Set to 0 to switch it off.
+# Overridable at runtime from /admin.
 refresh_seconds: 600
 
 # Every feature below is on by default; list only the ones to switch off.
 # Disabled views 404 rather than render empty, and the header tabs drop
-# to match.
+# to match. Overridable at runtime from /admin.
 # features:
 #     homework: false
 #     exams: false
@@ -29,6 +32,13 @@ refresh_seconds: 600
 # /setup/<account-id>?token=<this value>. Without a match the route 404s.
 # Generate one with: openssl rand -hex 16
 setup_token: 'change-me'
+
+# Token that unlocks the /admin settings form (locale, cache/refresh timing,
+# features): call it as /admin?token=<this value>. Without a match the route
+# 404s. Saves go to var/settings.yaml, never back into this file - accounts,
+# students and every other key here stay a manual edit. Generate one with:
+# openssl rand -hex 16
+admin_token: 'change-me'
 
 # One entry per WebUntis login. A parent account with two children needs
 # one entry; two separate student logins need two.
