@@ -92,6 +92,13 @@ to the config file again.
 `nginx.conf.example` is a complete vhost. Document root is `public/`, everything
 routes through `index.php`, and PHP-FPM is the only moving part.
 
+`nginx.conf.example` caches everything under `/assets/` for 7 days, so
+`{{ asset(...) }}` in the templates appends each file's own mtime as a `?v=`
+query string (`App\Asset\MtimeVersionStrategy`). A deploy that touches
+`style.css` changes that URL, so the browser fetches it immediately instead
+of serving the old file for up to a week - no manual version bump, no build
+step.
+
 The dashboard shows where two children are at any hour of the day. Put HTTP basic
 auth, an IP allowlist, or your existing SSO in front of it, and serve it over
 TLS only. `config/untis.yaml` holds credentials in cleartext, so it is gitignored
@@ -195,6 +202,7 @@ src/Untis/Lesson.php            One timetable block
 src/Untis/Homework.php          One outstanding homework assignment
 src/Untis/HomeworkTracker.php   Local "done" marks, layered over Homework, never synced to WebUntis
 src/Untis/Exam.php              One upcoming exam
+src/Asset/MtimeVersionStrategy.php      asset() cache-busting, keyed by file mtime
 src/Controller/DashboardController.php  Dashboard, homework, exams, manifest, /setup helper
 src/Controller/AdminController.php      /admin settings form, reads and saves via ConfigLoader
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n

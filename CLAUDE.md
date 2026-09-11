@@ -50,6 +50,12 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
   Two YAML catalogues only (`en`, `de`); keep their keys in sync. Keys are dot
   paths into the tree. The language is app-wide from `locale` in `untis.yaml`
   (`en` if unset or unknown); there is no per-request switch.
+- Static files are always reached through `{{ asset(...) }}`, never a literal
+  `/assets/...` path, so `App\Asset\MtimeVersionStrategy` (wired in
+  `config/packages/framework.yaml`) can append each file's own mtime as a
+  `?v=` cache-buster. That is what lets `nginx.conf.example` cache
+  `/assets/` hard without a deploy leaving the browser stuck on a stale
+  `style.css`.
 - The `<link rel="manifest">` tag carries `crossorigin="use-credentials"`. Web
   app manifest fetches omit credentials by default even for same-origin
   requests (unlike a normal `<link>`/`<img>`), so behind the HTTP basic auth

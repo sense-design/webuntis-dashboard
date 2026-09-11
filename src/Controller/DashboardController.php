@@ -13,6 +13,7 @@ use App\Untis\Lesson;
 use App\Untis\TimetableProvider;
 use App\Untis\UntisException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +36,7 @@ final class DashboardController extends AbstractController
         private readonly ConfigLoader $config,
         private readonly Translator $translator,
         private readonly HomeworkTracker $homeworkTracker,
+        private readonly Packages $assets,
     ) {
     }
 
@@ -277,9 +279,9 @@ final class DashboardController extends AbstractController
             'background_color' => '#ECEEF0',
             'theme_color' => '#ECEEF0',
             'icons' => [
-                ['src' => '/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png'],
-                ['src' => '/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png'],
-                ['src' => '/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+                ['src' => $this->assets->getUrl('icon-192.png'), 'sizes' => '192x192', 'type' => 'image/png'],
+                ['src' => $this->assets->getUrl('icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png'],
+                ['src' => $this->assets->getUrl('icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
             ],
         ], Response::HTTP_OK, ['Content-Type' => 'application/manifest+json']);
     }

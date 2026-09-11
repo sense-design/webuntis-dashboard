@@ -9,3 +9,8 @@ framework:
         log: true
     cache:
         app: cache.adapter.filesystem
+    # asset() appends each file's own mtime as a cache-buster (see
+    # App\Asset\MtimeVersionStrategy), so nginx can cache /assets/ hard
+    # without the browser holding on to a stale style.css after a deploy.
+    assets:
+        version_strategy: App\Asset\MtimeVersionStrategy
