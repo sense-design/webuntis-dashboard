@@ -25,6 +25,7 @@ lesson:
     cancelled: 'cancelled'
     substitution: 'Substitution'
     substitution_for: 'Substitution for {teachers}'
+    free: 'Free period, next lesson at {time}'
 
 homework:
     title: 'Homework'

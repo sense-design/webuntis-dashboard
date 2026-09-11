@@ -137,6 +137,11 @@ The home screen label comes from `app.name` in the translation catalogues.
 - Adjacent periods of the same lesson are merged, so a double period is one
   block from 08:00 to 09:30 rather than two rows. Periods more than five
   minutes apart stay separate, so real breaks survive.
+- A gap of 30 minutes or more between two blocks gets its own row ("Free
+  period, next lesson at 09:50"), so a day with a free period in the middle
+  reads at a glance instead of requiring the reader to compare end and start
+  times themselves. Shorter gaps are just ordinary passing time and stay
+  silent.
 - Cancelled lessons stay visible, struck through and marked. Removing them
   would hide the thing you opened the page for.
 - Substitutions show the teacher who was replaced when WebUntis reports it.
@@ -145,7 +150,6 @@ The home screen label comes from `app.name` in the translation catalogues.
 
 ## Possible next steps
 
-- Free period markers between blocks, so "starts at 09:50" reads at a glance
 - An iCal feed per student for the family calendar
 - Push on change: diff the cached day against a fresh fetch and send on delta
 

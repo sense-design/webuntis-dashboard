@@ -161,6 +161,23 @@ body {
     color: var(--shift);
 }
 
+/* Free periods ----------------------------------------------------------- */
+
+.gap {
+    padding: 0.5rem 0;
+    border-top: 1px dashed var(--rule);
+    font-size: 0.8125rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+/* The gap's own rule already separates it from the lesson above; a second
+   one right below would read as a double line. */
+.gap + .lesson {
+    border-top: 0;
+    padding-top: 0.35rem;
+}
+
 /* Cancelled and substituted -------------------------------------------- */
 
 .lesson--cancelled .lesson__subject {

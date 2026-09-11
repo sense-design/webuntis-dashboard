@@ -22,6 +22,13 @@ final class DashboardController extends AbstractController
     /** Accent colours handed to the students in config order. */
     private const ACCENTS = ['#0F6E5C', '#6B3FA0', '#1D4F91', '#8A5000'];
 
+    /**
+     * Ordinary passing time between two periods runs 5-15 minutes at most;
+     * only a gap at least this long is an actual free period rather than the
+     * normal walk to the next room.
+     */
+    private const FREE_PERIOD_MINUTES = 30;
+
     public function __construct(
         private readonly TimetableProvider $provider,
         private readonly ConfigLoader $config,
@@ -48,6 +55,7 @@ final class DashboardController extends AbstractController
         $students = $this->provider->fetchDay($day);
         foreach ($students as $index => $student) {
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+            $students[$index]['entries'] = $this->withFreePeriods($student['lessons']);
         }
 
         $changes = 0;
@@ -218,6 +226,39 @@ final class DashboardController extends AbstractController
         $client->logout();
 
         return $this->json($payload);
+    }
+
+    /**
+     * A student's lessons with a free-period marker spliced in wherever two
+     * of them are at least FREE_PERIOD_MINUTES apart, so a schedule with a
+     * gap in the middle reads as "next lesson at 09:50" rather than making
+     * the reader compare every end and start time themselves.
+     *
+     * @param list<Lesson> $lessons
+     *
+     * @return list<array{type: string, lesson: ?Lesson, until: ?string}>
+     */
+    private function withFreePeriods(array $lessons): array
+    {
+        $entries = [];
+        foreach ($lessons as $index => $lesson) {
+            if ($index > 0) {
+                $gap = $this->toMinutes($lesson->start) - $this->toMinutes($lessons[$index - 1]->end);
+                if ($gap >= self::FREE_PERIOD_MINUTES) {
+                    $entries[] = ['type' => 'gap', 'lesson' => null, 'until' => $lesson->start];
+                }
+            }
+            $entries[] = ['type' => 'lesson', 'lesson' => $lesson, 'until' => null];
+        }
+
+        return $entries;
+    }
+
+    private function toMinutes(string $time): int
+    {
+        [$hours, $minutes] = array_map('intval', explode(':', $time));
+
+        return $hours * 60 + $minutes;
     }
 
     /**
