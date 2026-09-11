@@ -5,7 +5,7 @@ title: 'Stundenplan {day}'
 
 app:
     name: 'WebUntis-Dashboard'
-    description: 'Stundenplan und Hausaufgaben auf einen Blick'
+    description: 'Stundenplan, Hausaufgaben und Klausuren auf einen Blick'
 
 date:
     long: '{weekday}, {day}. {month}'
@@ -31,9 +31,15 @@ homework:
     none: 'Keine offenen Hausaufgaben.'
     due: 'fällig {date}'
 
+exams:
+    title: 'Prüfungen'
+    none: 'Keine bevorstehenden Prüfungen.'
+    on: 'am {date}'
+
 nav:
     timetable: 'Stundenplan'
     homework: 'Hausaufgaben'
+    exams: 'Prüfungen'
 
 header:
     pager: 'Tag wechseln'

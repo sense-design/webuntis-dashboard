@@ -4,7 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% if refresh_seconds > 0 %}<meta http-equiv="refresh" content="{{ refresh_seconds }}">{% endif %}
-    <title>{{ view == 'homework' ? t('homework.title') : t('title', {day: day_label}) }}</title>
+    <title>
+        {%- if view == 'homework' -%}
+            {{ t('homework.title') }}
+        {%- elseif view == 'exams' -%}
+            {{ t('exams.title') }}
+        {%- else -%}
+            {{ t('title', {day: day_label}) }}
+        {%- endif -%}
+    </title>
     <link rel="stylesheet" href="{{ asset('assets/style.css') }}">
 
     <link rel="icon" href="{{ asset('icon.svg') }}" type="image/svg+xml">
@@ -21,18 +29,29 @@
 <main class="dashboard">
 
     <header class="day">
-        <h1>{{ view == 'homework' ? t('homework.title') : day_label }}</h1>
+        <h1>
+            {%- if view == 'homework' -%}
+                {{ t('homework.title') }}
+            {%- elseif view == 'exams' -%}
+                {{ t('exams.title') }}
+            {%- else -%}
+                {{ day_label }}
+            {%- endif -%}
+        </h1>
 
-        <nav class="views" aria-label="{{ t('nav.timetable') }} / {{ t('nav.homework') }}">
-            <a class="views__link{{ view != 'homework' ? ' views__link--active' : '' }}"
+        <nav class="views" aria-label="{{ t('nav.timetable') }} / {{ t('nav.homework') }} / {{ t('nav.exams') }}">
+            <a class="views__link{{ view == 'timetable' ? ' views__link--active' : '' }}"
                href="{{ path('dashboard') }}"
-               {%- if view != 'homework' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
+               {%- if view == 'timetable' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
             <a class="views__link{{ view == 'homework' ? ' views__link--active' : '' }}"
                href="{{ path('homework') }}"
                {%- if view == 'homework' %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
+            <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
+               href="{{ path('exams') }}"
+               {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
         </nav>
 
-        {% if view != 'homework' %}
+        {% if view == 'timetable' %}
             <nav class="pager" aria-label="{{ t('header.pager') }}">
                 <a class="pager__link pager__link--prev" rel="prev" href="{{ path('dashboard', {day: previous_day.day}) }}">
                     <span class="pager__arrow" aria-hidden="true">&larr;</span>
@@ -79,6 +98,38 @@
                                     <p class="homework__text">{{ task.text }}</p>
                                     {% if task.remark %}
                                         <p class="homework__remark">{{ task.remark }}</p>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% endif %}
+                {% elseif view == 'exams' %}
+                    {% if student.exams is empty %}
+                        <p class="empty">{{ t('exams.none') }}</p>
+                    {% else %}
+                        <ol class="exams">
+                            {% for exam in student.exams %}
+                                <li class="exam">
+                                    <div class="exam__head">
+                                        <span class="exam__subject">{{ exam.subject }}</span>
+                                        <span class="exam__date">{{ t('exams.on', {date: exam.date}) }}</span>
+                                    </div>
+                                    <p class="exam__meta">
+                                        {% if exam.type is not empty and exam.name is not empty %}
+                                            <span>{{ exam.type }} – {{ exam.name }}</span>
+                                        {% elseif exam.type is not empty or exam.name is not empty %}
+                                            <span>{{ exam.type }}{{ exam.name }}</span>
+                                        {% endif %}
+                                        <span>{{ exam.start }}–{{ exam.end }}</span>
+                                        {% if exam.teachers is not empty %}
+                                            <span>{{ exam.teachers|join(', ') }}</span>
+                                        {% endif %}
+                                        {% if exam.rooms is not empty %}
+                                            <span class="exam__room">{{ exam.rooms|join(', ') }}</span>
+                                        {% endif %}
+                                    </p>
+                                    {% if exam.text %}
+                                        <p class="exam__text">{{ exam.text }}</p>
                                     {% endif %}
                                 </li>
                             {% endfor %}

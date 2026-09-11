@@ -302,6 +302,68 @@ final class UntisClient
         return $homework;
     }
 
+    /**
+     * Upcoming exams for the account's student, on or after $from and before
+     * $to, sorted by date and start time.
+     *
+     * WebUntis keys this by class rather than by student, so this reads the
+     * mobile app's /api/exams endpoint (jsonrpc.do has no exam method) with
+     * klasseId -1, which returns every exam visible to the session, and each
+     * exam is then matched against its own assignedStudents list; an explicit
+     * $elementId only matters for a parent account with more than one child,
+     * where the response mixes them. The feed names subjects by short code
+     * only, so the timetable over the same range is read to resolve them to
+     * long names, mirroring getHomework().
+     *
+     * @return list<Exam>
+     */
+    public function getExams(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        ?int $elementId = null,
+        ?int $elementType = null,
+    ): array {
+        $subjectNames = $this->getSubjectNames($from, $to, $elementId, $elementType);
+
+        $body = $this->apiGet('api/exams', [
+            'startDate' => (int) $from->format('Ymd'),
+            'endDate' => (int) $to->format('Ymd'),
+            'klasseId' => -1,
+            'withGrades' => 'false',
+        ]);
+
+        $exams = [];
+        foreach ($body['data']['exams'] ?? [] as $row) {
+            $students = array_map(
+                static fn (array $student): int => (int) ($student['id'] ?? 0),
+                $row['assignedStudents'] ?? [],
+            );
+            if (null !== $elementId && [] !== $students && !\in_array($elementId, $students, true)) {
+                continue;
+            }
+
+            $code = (string) ($row['subject'] ?? '');
+            $exams[] = new Exam(
+                subject: $subjectNames[$code] ?? $code,
+                type: (string) ($row['examType'] ?? ''),
+                name: trim((string) ($row['name'] ?? '')),
+                text: trim((string) ($row['text'] ?? '')),
+                date: $this->parseDateStamp((int) ($row['examDate'] ?? 0)),
+                start: $this->formatTime((int) ($row['startTime'] ?? 0)),
+                end: $this->formatTime((int) ($row['endTime'] ?? 0)),
+                teachers: array_values(array_filter(array_map('strval', $row['teachers'] ?? []))),
+                rooms: array_values(array_filter(array_map('strval', $row['rooms'] ?? []))),
+            );
+        }
+
+        usort(
+            $exams,
+            static fn (Exam $a, Exam $b) => [$a->date, $a->start] <=> [$b->date, $b->start],
+        );
+
+        return $exams;
+    }
+
     // -- plumbing ---------------------------------------------------------
 
     /**
