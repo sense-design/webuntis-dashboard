@@ -14,6 +14,15 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
 - `config/untis.yaml` holds credentials and is never committed.
 - CSS is plain CSS in `public/assets/style.css`. No build pipeline, no
   framework, no utility classes.
+- Every colour is one of the custom properties on `:root` (`--paper`,
+  `--card`, `--ink`, `--muted`, `--rule`, `--alert`, `--shift`, `--accent`).
+  Dark mode is a single `@media (prefers-color-scheme: dark)` block that
+  redeclares those eight tokens (no in-app toggle, follows the system
+  setting) — a literal hex colour anywhere outside that pair of blocks
+  either can't be reached from a token or will not adapt to dark mode.
+  `color: #fff` is the one intentional exception, always paired with
+  `background: var(--accent)`, since that combination is designed to work
+  in both themes.
 - Optional features (homework, exams, free-period markers) are on by default
   and switched off individually via `features.<name>` in `untis.yaml`, or
   from `/admin`, read through `ConfigLoader::<name>Enabled()`. A disabled

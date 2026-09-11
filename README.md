@@ -185,6 +185,9 @@ The home screen label comes from `app.name` in the translation catalogues.
 - Substitutions show the teacher who was replaced when WebUntis reports it.
 - One student failing does not break the page. The error appears in that
   student's column and the other columns still render.
+- The page follows the system's light/dark setting automatically. There is
+  no in-app toggle; every colour is a CSS custom property, redeclared once
+  for dark mode.
 
 ## Possible next steps
 
