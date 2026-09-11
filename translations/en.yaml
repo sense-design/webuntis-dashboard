@@ -5,7 +5,7 @@ title: 'Timetable {day}'
 
 app:
     name: 'WebUntis Dashboard'
-    description: 'Timetable and homework at a glance'
+    description: 'Timetable, homework and exams at a glance'
 
 date:
     long: '{weekday}, {day} {month}'
@@ -25,15 +25,22 @@ lesson:
     cancelled: 'cancelled'
     substitution: 'Substitution'
     substitution_for: 'Substitution for {teachers}'
+    free: 'Free period, next lesson at {time}'
 
 homework:
     title: 'Homework'
     none: 'No open homework.'
     due: 'due {date}'
 
+exams:
+    title: 'Exams'
+    none: 'No upcoming exams.'
+    on: 'on {date}'
+
 nav:
     timetable: 'Timetable'
     homework: 'Homework'
+    exams: 'Exams'
 
 header:
     pager: 'Change day'

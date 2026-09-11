@@ -17,6 +17,14 @@ cache_ttl: 300
 # Browser auto-reload interval. Set to 0 to switch it off.
 refresh_seconds: 600
 
+# Every feature below is on by default; list only the ones to switch off.
+# Disabled views 404 rather than render empty, and the header tabs drop
+# to match.
+# features:
+#     homework: false
+#     exams: false
+#     free_periods: false
+
 # Token that unlocks the /setup/<account-id> helper: call it as
 # /setup/<account-id>?token=<this value>. Without a match the route 404s.
 # Generate one with: openssl rand -hex 16

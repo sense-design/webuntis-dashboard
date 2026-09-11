@@ -4,7 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% if refresh_seconds > 0 %}<meta http-equiv="refresh" content="{{ refresh_seconds }}">{% endif %}
-    <title>{{ view == 'homework' ? t('homework.title') : t('title', {day: day_label}) }}</title>
+    <title>
+        {%- if view == 'homework' -%}
+            {{ t('homework.title') }}
+        {%- elseif view == 'exams' -%}
+            {{ t('exams.title') }}
+        {%- else -%}
+            {{ t('title', {day: day_label}) }}
+        {%- endif -%}
+    </title>
     <link rel="stylesheet" href="{{ asset('assets/style.css') }}">
 
     <link rel="icon" href="{{ asset('icon.svg') }}" type="image/svg+xml">
@@ -21,18 +29,35 @@
 <main class="dashboard">
 
     <header class="day">
-        <h1>{{ view == 'homework' ? t('homework.title') : day_label }}</h1>
+        <h1>
+            {%- if view == 'homework' -%}
+                {{ t('homework.title') }}
+            {%- elseif view == 'exams' -%}
+                {{ t('exams.title') }}
+            {%- else -%}
+                {{ day_label }}
+            {%- endif -%}
+        </h1>
 
-        <nav class="views" aria-label="{{ t('nav.timetable') }} / {{ t('nav.homework') }}">
-            <a class="views__link{{ view != 'homework' ? ' views__link--active' : '' }}"
-               href="{{ path('dashboard') }}"
-               {%- if view != 'homework' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
-            <a class="views__link{{ view == 'homework' ? ' views__link--active' : '' }}"
-               href="{{ path('homework') }}"
-               {%- if view == 'homework' %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
-        </nav>
+        {% if homework_enabled or exams_enabled %}
+            <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}">
+                <a class="views__link{{ view == 'timetable' ? ' views__link--active' : '' }}"
+                   href="{{ path('dashboard') }}"
+                   {%- if view == 'timetable' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
+                {% if homework_enabled %}
+                    <a class="views__link{{ view == 'homework' ? ' views__link--active' : '' }}"
+                       href="{{ path('homework') }}"
+                       {%- if view == 'homework' %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
+                {% endif %}
+                {% if exams_enabled %}
+                    <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
+                       href="{{ path('exams') }}"
+                       {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
+                {% endif %}
+            </nav>
+        {% endif %}
 
-        {% if view != 'homework' %}
+        {% if view == 'timetable' %}
             <nav class="pager" aria-label="{{ t('header.pager') }}">
                 <a class="pager__link pager__link--prev" rel="prev" href="{{ path('dashboard', {day: previous_day.day}) }}">
                     <span class="pager__arrow" aria-hidden="true">&larr;</span>
@@ -84,45 +109,82 @@
                             {% endfor %}
                         </ol>
                     {% endif %}
+                {% elseif view == 'exams' %}
+                    {% if student.exams is empty %}
+                        <p class="empty">{{ t('exams.none') }}</p>
+                    {% else %}
+                        <ol class="exams">
+                            {% for exam in student.exams %}
+                                <li class="exam">
+                                    <div class="exam__head">
+                                        <span class="exam__subject">{{ exam.subject }}</span>
+                                        <span class="exam__date">{{ t('exams.on', {date: exam.date}) }}</span>
+                                    </div>
+                                    <p class="exam__meta">
+                                        {% if exam.type is not empty and exam.name is not empty %}
+                                            <span>{{ exam.type }} – {{ exam.name }}</span>
+                                        {% elseif exam.type is not empty or exam.name is not empty %}
+                                            <span>{{ exam.type }}{{ exam.name }}</span>
+                                        {% endif %}
+                                        <span>{{ exam.start }}–{{ exam.end }}</span>
+                                        {% if exam.teachers is not empty %}
+                                            <span>{{ exam.teachers|join(', ') }}</span>
+                                        {% endif %}
+                                        {% if exam.rooms is not empty %}
+                                            <span class="exam__room">{{ exam.rooms|join(', ') }}</span>
+                                        {% endif %}
+                                    </p>
+                                    {% if exam.text %}
+                                        <p class="exam__text">{{ exam.text }}</p>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% endif %}
                 {% elseif student.lessons is empty %}
                     <p class="empty">{{ t('student.empty') }}</p>
                 {% else %}
                     <ol class="lessons">
-                        {% for lesson in student.lessons %}
-                            <li class="lesson{{ lesson.isCancelled ? ' lesson--cancelled' : '' }}{{ lesson.code == 'irregular' ? ' lesson--shifted' : '' }}">
-                                <div class="lesson__time">
-                                    <span class="lesson__start">{{ lesson.start }}</span>
-                                    <span class="lesson__end">{{ lesson.end }}</span>
-                                </div>
-                                <div class="lesson__body">
-                                    <h3 class="lesson__subject">{{ lesson.subject }}</h3>
+                        {% for entry in student.entries %}
+                            {% if entry.type == 'gap' %}
+                                <li class="gap">{{ t('lesson.free', {time: entry.until}) }}</li>
+                            {% else %}
+                                {% set lesson = entry.lesson %}
+                                <li class="lesson{{ lesson.isCancelled ? ' lesson--cancelled' : '' }}{{ lesson.code == 'irregular' ? ' lesson--shifted' : '' }}">
+                                    <div class="lesson__time">
+                                        <span class="lesson__start">{{ lesson.start }}</span>
+                                        <span class="lesson__end">{{ lesson.end }}</span>
+                                    </div>
+                                    <div class="lesson__body">
+                                        <h3 class="lesson__subject">{{ lesson.subject }}</h3>
 
-                                    <p class="lesson__meta">
-                                        {% if lesson.teachers is not empty %}
-                                            <span>{{ lesson.teacherLine }}</span>
-                                        {% endif %}
-                                        {% if lesson.rooms is not empty %}
-                                            <span class="lesson__room">{{ lesson.roomLine }}</span>
-                                        {% endif %}
-                                    </p>
-
-                                    {% if lesson.isCancelled %}
-                                        <p class="lesson__flag">{{ t('lesson.cancelled') }}</p>
-                                    {% elseif lesson.code == 'irregular' %}
-                                        <p class="lesson__flag">
-                                            {% if lesson.replacedTeachers is not empty %}
-                                                {{ t('lesson.substitution_for', {teachers: lesson.replacedTeachers|join(', ')}) }}
-                                            {% else %}
-                                                {{ t('lesson.substitution') }}
+                                        <p class="lesson__meta">
+                                            {% if lesson.teachers is not empty %}
+                                                <span>{{ lesson.teacherLine }}</span>
+                                            {% endif %}
+                                            {% if lesson.rooms is not empty %}
+                                                <span class="lesson__room">{{ lesson.roomLine }}</span>
                                             {% endif %}
                                         </p>
-                                    {% endif %}
 
-                                    {% for note in lesson.notes %}
-                                        <p class="lesson__note">{{ note }}</p>
-                                    {% endfor %}
-                                </div>
-                            </li>
+                                        {% if lesson.isCancelled %}
+                                            <p class="lesson__flag">{{ t('lesson.cancelled') }}</p>
+                                        {% elseif lesson.code == 'irregular' %}
+                                            <p class="lesson__flag">
+                                                {% if lesson.replacedTeachers is not empty %}
+                                                    {{ t('lesson.substitution_for', {teachers: lesson.replacedTeachers|join(', ')}) }}
+                                                {% else %}
+                                                    {{ t('lesson.substitution') }}
+                                                {% endif %}
+                                            </p>
+                                        {% endif %}
+
+                                        {% for note in lesson.notes %}
+                                            <p class="lesson__note">{{ note }}</p>
+                                        {% endfor %}
+                                    </div>
+                                </li>
+                            {% endif %}
                         {% endfor %}
                     </ol>
                 {% endif %}

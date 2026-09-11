@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\I18n\Translator;
 use App\Untis\ConfigLoader;
+use App\Untis\Exam;
 use App\Untis\Homework;
 use App\Untis\Lesson;
 use App\Untis\TimetableProvider;
@@ -20,6 +21,13 @@ final class DashboardController extends AbstractController
 {
     /** Accent colours handed to the students in config order. */
     private const ACCENTS = ['#0F6E5C', '#6B3FA0', '#1D4F91', '#8A5000'];
+
+    /**
+     * Ordinary passing time between two periods runs 5-15 minutes at most;
+     * only a gap at least this long is an actual free period rather than the
+     * normal walk to the next room.
+     */
+    private const FREE_PERIOD_MINUTES = 30;
 
     public function __construct(
         private readonly TimetableProvider $provider,
@@ -47,6 +55,10 @@ final class DashboardController extends AbstractController
         $students = $this->provider->fetchDay($day);
         foreach ($students as $index => $student) {
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+            $students[$index]['entries'] = $this->withFreePeriods(
+                $student['lessons'],
+                $this->config->freePeriodsEnabled(),
+            );
         }
 
         $changes = 0;
@@ -72,16 +84,25 @@ final class DashboardController extends AbstractController
             'changes' => $changes,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            'homework_enabled' => $this->config->homeworkEnabled(),
+            'exams_enabled' => $this->config->examsEnabled(),
         ]);
     }
 
     /**
      * The homework view: every student's outstanding homework, sorted by due
      * date. It has no day pager because homework is not day-scoped.
+     *
+     * Guarded by the `features.homework` config key; disabled, the route
+     * behaves as if it did not exist, same as `/setup` without its token.
      */
     #[Route('/homework', name: 'homework', methods: ['GET'])]
     public function homework(): Response
     {
+        if (!$this->config->homeworkEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
         $timezone = $this->config->timezone();
         $today = new \DateTimeImmutable('today', $timezone);
 
@@ -107,6 +128,54 @@ final class DashboardController extends AbstractController
             'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            'homework_enabled' => true,
+            'exams_enabled' => $this->config->examsEnabled(),
+        ]);
+    }
+
+    /**
+     * The exams view: every student's upcoming exams, sorted by date. It has
+     * no day pager because, like homework, it is not day-scoped.
+     *
+     * Guarded by the `features.exams` config key; disabled, the route
+     * behaves as if it did not exist, same as `/setup` without its token.
+     */
+    #[Route('/exams', name: 'exams', methods: ['GET'])]
+    public function exams(): Response
+    {
+        if (!$this->config->examsEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
+        $timezone = $this->config->timezone();
+
+        $students = $this->provider->fetchExams();
+        foreach ($students as $index => $student) {
+            $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+            $students[$index]['exams'] = array_map(
+                fn (Exam $exam): array => [
+                    'subject' => $exam->subject,
+                    'type' => $exam->type,
+                    'name' => $exam->name,
+                    'text' => $exam->text,
+                    'date' => $this->formatDayCompact($exam->date),
+                    'start' => $exam->start,
+                    'end' => $exam->end,
+                    'teachers' => $exam->teachers,
+                    'rooms' => $exam->rooms,
+                ],
+                $student['exams'],
+            );
+        }
+
+        return $this->render('dashboard.html.twig', [
+            'view' => 'exams',
+            'students' => $students,
+            'is_today' => true,
+            'refresh_seconds' => $this->config->refreshSeconds(),
+            'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            'homework_enabled' => $this->config->homeworkEnabled(),
+            'exams_enabled' => true,
         ]);
     }
 
@@ -180,6 +249,41 @@ final class DashboardController extends AbstractController
         $client->logout();
 
         return $this->json($payload);
+    }
+
+    /**
+     * A student's lessons with a free-period marker spliced in wherever two
+     * of them are at least FREE_PERIOD_MINUTES apart, so a schedule with a
+     * gap in the middle reads as "next lesson at 09:50" rather than making
+     * the reader compare every end and start time themselves. Disabled via
+     * the `features.free_periods` config key, this just wraps the lessons
+     * without looking for gaps.
+     *
+     * @param list<Lesson> $lessons
+     *
+     * @return list<array{type: string, lesson: ?Lesson, until: ?string}>
+     */
+    private function withFreePeriods(array $lessons, bool $enabled): array
+    {
+        $entries = [];
+        foreach ($lessons as $index => $lesson) {
+            if ($enabled && $index > 0) {
+                $gap = $this->toMinutes($lesson->start) - $this->toMinutes($lessons[$index - 1]->end);
+                if ($gap >= self::FREE_PERIOD_MINUTES) {
+                    $entries[] = ['type' => 'gap', 'lesson' => null, 'until' => $lesson->start];
+                }
+            }
+            $entries[] = ['type' => 'lesson', 'lesson' => $lesson, 'until' => null];
+        }
+
+        return $entries;
+    }
+
+    private function toMinutes(string $time): int
+    {
+        [$hours, $minutes] = array_map('intval', explode(':', $time));
+
+        return $hours * 60 + $minutes;
     }
 
     /**
