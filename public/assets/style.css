@@ -9,11 +9,15 @@
     --accent: #0F6E5C;
 }
 
-/* Dark mode follows the system setting; there is no in-app toggle. Every
-   colour in the page is one of the tokens above, so redeclaring them here
-   is enough - nothing else needs a dark-specific rule. */
+/* Theme follows the system setting by default; /admin can pin it to light or
+   dark instead (ConfigLoader::theme(), the html[data-theme] attribute). The
+   attribute is only ever present for an explicit choice - "system" omits it
+   - so the media query below has to defer to it rather than the other way
+   around. Every colour in the page is one of the tokens above, so
+   redeclaring them here is enough - nothing else needs a dark-specific
+   rule. */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         --paper: #14171A;
         --card: #1E2226;
         --ink: #ECEEF0;
@@ -23,6 +27,17 @@
         --shift: #E8A94C;
         --accent: #1FA98D;
     }
+}
+
+:root[data-theme="dark"] {
+    --paper: #14171A;
+    --card: #1E2226;
+    --ink: #ECEEF0;
+    --muted: #A3A9AF;
+    --rule: #33383D;
+    --alert: #FF7A6E;
+    --shift: #E8A94C;
+    --accent: #1FA98D;
 }
 
 *,
@@ -547,7 +562,7 @@ body {
 /* Admin ------------------------------------------------------------------ */
 
 .admin__card {
-    max-width: 28rem;
+    max-width: 34rem;
     background: var(--card);
     border-radius: 6px;
     padding: 1.5rem;
@@ -601,6 +616,19 @@ body {
     margin: 0 0 0.5rem;
     font-size: 0.9375rem;
     font-weight: 400;
+}
+
+.admin__subjects {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule);
+}
+
+.admin__subjects-name {
+    margin: 0 0 0.35rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--muted);
 }
 
 .admin__actions {

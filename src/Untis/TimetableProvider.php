@@ -71,6 +71,58 @@ final class TimetableProvider
         });
     }
 
+    /**
+     * Every subject name WebUntis has on record for each configured student
+     * over the next two weeks - unfiltered by hide_subjects, so a subject
+     * that is already hidden still shows up to be un-hidden. Used to build
+     * the /admin hide_subjects picklist. Unlike fetchDay()/fetchHomework(),
+     * this is not cached: /admin is opened rarely, and freshness there
+     * matters more than sparing WebUntis a request.
+     *
+     * @return list<array{name: string, subjects: list<string>, error: ?string}>
+     */
+    public function fetchSubjects(): array
+    {
+        $from = new \DateTimeImmutable('today', $this->config->timezone());
+        $to = $from->modify('+14 days');
+
+        /** @var array<string, UntisClient> $sessions */
+        $sessions = [];
+        $results = [];
+
+        try {
+            foreach ($this->config->students() as $student) {
+                $entry = ['name' => $student['name'], 'subjects' => [], 'error' => null];
+
+                try {
+                    $accountId = $student['account'];
+                    $sessions[$accountId] ??= $this->connect($accountId);
+
+                    $entry['subjects'] = $sessions[$accountId]->getSubjects(
+                        $from,
+                        $to,
+                        isset($student['element_id']) ? (int) $student['element_id'] : null,
+                        isset($student['element_type']) ? (int) $student['element_type'] : null,
+                    );
+                } catch (UntisException $exception) {
+                    $this->logger->warning('WebUntis subject lookup failed for {student}: {message}', [
+                        'student' => $student['name'],
+                        'message' => $exception->getMessage(),
+                    ]);
+                    $entry['error'] = $exception->getMessage();
+                }
+
+                $results[] = $entry;
+            }
+        } finally {
+            foreach ($sessions as $session) {
+                $session->logout();
+            }
+        }
+
+        return $results;
+    }
+
     public function connect(string $accountId): UntisClient
     {
         $accounts = $this->config->accounts();
@@ -125,7 +177,7 @@ final class TimetableProvider
                     // a student (e.g. both Religion and Praktische Philosophie),
                     // so drop the ones this student does not attend. Subject
                     // names carry stray double spaces, so compare loosely.
-                    $hidden = $student['hide_subjects'] ?? [];
+                    $hidden = $this->config->hiddenSubjects($student['name']);
                     if ([] !== $hidden) {
                         $tidy = static fn (string $name): string => trim((string) preg_replace('/\s+/', ' ', $name));
                         $hidden = array_map($tidy, $hidden);

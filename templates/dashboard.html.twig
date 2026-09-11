@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ locale }}">
+<html lang="{{ locale }}"{% if theme != 'system' %} data-theme="{{ theme }}"{% endif %}>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,8 +21,14 @@
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="32x32">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ path('manifest') }}" crossorigin="use-credentials">
-    <meta name="theme-color" content="#ECEEF0" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#14171A" media="(prefers-color-scheme: dark)">
+    {% if theme == 'dark' %}
+        <meta name="theme-color" content="#14171A">
+    {% elseif theme == 'light' %}
+        <meta name="theme-color" content="#ECEEF0">
+    {% else %}
+        <meta name="theme-color" content="#ECEEF0" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#14171A" media="(prefers-color-scheme: dark)">
+    {% endif %}
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">

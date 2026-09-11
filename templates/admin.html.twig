@@ -1,13 +1,19 @@
 <!DOCTYPE html>
-<html lang="{{ locale }}">
+<html lang="{{ locale }}"{% if settings.theme != 'system' %} data-theme="{{ settings.theme }}"{% endif %}>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ t('admin.title') }}</title>
     <link rel="stylesheet" href="{{ asset('assets/style.css') }}">
     <link rel="icon" href="{{ asset('icon.svg') }}" type="image/svg+xml">
-    <meta name="theme-color" content="#ECEEF0" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#14171A" media="(prefers-color-scheme: dark)">
+    {% if settings.theme == 'dark' %}
+        <meta name="theme-color" content="#14171A">
+    {% elseif settings.theme == 'light' %}
+        <meta name="theme-color" content="#ECEEF0">
+    {% else %}
+        <meta name="theme-color" content="#ECEEF0" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#14171A" media="(prefers-color-scheme: dark)">
+    {% endif %}
 </head>
 <body>
 <main class="dashboard admin">
@@ -27,6 +33,15 @@
                 <select id="locale" name="locale">
                     {% for code in locales %}
                         <option value="{{ code }}"{{ settings.locale == code ? ' selected' : '' }}>{{ t('admin.locale_' ~ code) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="admin__field">
+                <label for="theme">{{ t('admin.theme') }}</label>
+                <select id="theme" name="theme">
+                    {% for value in themes %}
+                        <option value="{{ value }}"{{ settings.theme == value ? ' selected' : '' }}>{{ t('admin.theme_' ~ value) }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -57,6 +72,36 @@
                     <input type="checkbox" name="feature_free_periods"{{ settings.features.free_periods ? ' checked' : '' }}>
                     {{ t('admin.feature_free_periods') }}
                 </label>
+            </fieldset>
+
+            <fieldset class="admin__field">
+                <legend>{{ t('admin.hide_subjects') }}</legend>
+                <p class="admin__hint">{{ t('admin.hide_subjects_hint') }}</p>
+
+                {% for student in students %}
+                    <div class="admin__subjects">
+                        <p class="admin__subjects-name">{{ student.name }}</p>
+                        {% if student.error %}
+                            <p class="admin__hint">{{ t('student.error', {message: student.error}) }}</p>
+                        {% else %}
+                            {# Marks this student's checklist as authoritative for the save,
+                               so an empty one is saved as "hide nothing" rather than being
+                               mistaken for a student whose fetch failed (see
+                               AdminController::readSubmittedSettings()). #}
+                            <input type="hidden" name="hide_subjects_shown[]" value="{{ student.name }}">
+                            {% if student.subjects is empty %}
+                                <p class="admin__hint">{{ t('admin.hide_subjects_none') }}</p>
+                            {% else %}
+                                {% for subject in student.subjects %}
+                                    <label class="admin__checkbox">
+                                        <input type="checkbox" name="hide_subjects[{{ student.name }}][]" value="{{ subject.name }}"{{ subject.hidden ? ' checked' : '' }}>
+                                        {{ subject.name }}
+                                    </label>
+                                {% endfor %}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endfor %}
             </fieldset>
 
             <div class="admin__actions">
