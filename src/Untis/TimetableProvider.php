@@ -56,6 +56,21 @@ final class TimetableProvider
         });
     }
 
+    /**
+     * Upcoming exams for every configured student, soonest first. Not tied
+     * to a day: WebUntis is asked for a window starting today.
+     *
+     * @return list<array{name: string, exams: list<Exam>, error: ?string}>
+     */
+    public function fetchExams(): array
+    {
+        return $this->cache->get('webuntis_dashboard.exams', function (ItemInterface $item) {
+            $item->expiresAfter($this->config->cacheTtl());
+
+            return $this->fetchExamsUncached();
+        });
+    }
+
     public function connect(string $accountId): UntisClient
     {
         $accounts = $this->config->accounts();
@@ -169,6 +184,51 @@ final class TimetableProvider
                     );
                 } catch (UntisException $exception) {
                     $this->logger->warning('WebUntis homework lookup failed for {student}: {message}', [
+                        'student' => $student['name'],
+                        'message' => $exception->getMessage(),
+                    ]);
+                    $entry['error'] = $exception->getMessage();
+                }
+
+                $results[] = $entry;
+            }
+        } finally {
+            foreach ($sessions as $session) {
+                $session->logout();
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * @return list<array{name: string, exams: list<Exam>, error: ?string}>
+     */
+    private function fetchExamsUncached(): array
+    {
+        $today = new \DateTimeImmutable('today', $this->config->timezone());
+        $to = $today->modify('+60 days');
+
+        /** @var array<string, UntisClient> $sessions */
+        $sessions = [];
+        $results = [];
+
+        try {
+            foreach ($this->config->students() as $student) {
+                $entry = ['name' => $student['name'], 'exams' => [], 'error' => null];
+
+                try {
+                    $accountId = $student['account'];
+                    $sessions[$accountId] ??= $this->connect($accountId);
+
+                    $entry['exams'] = $sessions[$accountId]->getExams(
+                        $today,
+                        $to,
+                        isset($student['element_id']) ? (int) $student['element_id'] : null,
+                        isset($student['element_type']) ? (int) $student['element_type'] : null,
+                    );
+                } catch (UntisException $exception) {
+                    $this->logger->warning('WebUntis exams lookup failed for {student}: {message}', [
                         'student' => $student['name'],
                         'message' => $exception->getMessage(),
                     ]);

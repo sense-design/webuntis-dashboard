@@ -31,3 +31,11 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
   Two YAML catalogues only (`en`, `de`); keep their keys in sync. Keys are dot
   paths into the tree. The language is app-wide from `locale` in `untis.yaml`
   (`en` if unset or unknown); there is no per-request switch.
+- `/WebUntis/api/exams` filters by `klasseId`, not by student, so
+  `getExams()` fetches with `klasseId=-1` and matches each exam's own
+  `assignedStudents` list, mirroring how `getHomework()` matches `records`.
+  Some schools return `403 Unerlaubter Zugriff` here for every account
+  regardless of parameters — the exams module is a separate right the school
+  has to grant, and a parent/student account may simply not have it. That
+  surfaces as the normal per-student error, same as any other WebUntis
+  failure; it does not mean the request is malformed.

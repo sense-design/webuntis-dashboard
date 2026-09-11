@@ -103,7 +103,14 @@ homework, sorted by due date, read from the mobile app's
 `/WebUntis/api/homeworks/lessons` endpoint. Completed assignments are dropped.
 That feed names subjects by short code only, so the next three weeks of
 timetable are read alongside it to show the same long name the timetable does
-("07_WP_BI" becomes "Biologie"). The two views are linked from the header.
+("07_WP_BI" becomes "Biologie").
+
+`/exams` switches to the exam list: every student's exams over the next 60
+days, sorted by date, read from the mobile app's `/WebUntis/api/exams`
+endpoint. That endpoint filters by class rather than by student, so each
+exam's assigned-student list is checked instead, and subjects are resolved to
+long names the same way homework's are. All three views are linked from the
+header.
 
 The UI ships in English and German, set app-wide by `locale`. Strings live in
 `translations/en.yaml` and `translations/de.yaml`.
@@ -139,7 +146,6 @@ The home screen label comes from `app.name` in the translation catalogues.
 ## Possible next steps
 
 - Free period markers between blocks, so "starts at 09:50" reads at a glance
-- Exams, reachable through the same session as homework
 - An iCal feed per student for the family calendar
 - Push on change: diff the cached day against a fresh fetch and send on delta
 
@@ -152,7 +158,8 @@ src/Untis/ConfigLoader.php      Reads config/untis.yaml
 src/Untis/TimetableProvider.php Session reuse per account, caching, error isolation
 src/Untis/Lesson.php            One timetable block
 src/Untis/Homework.php          One outstanding homework assignment
-src/Controller/DashboardController.php  Dashboard, homework, manifest, /setup helper
+src/Untis/Exam.php              One upcoming exam
+src/Controller/DashboardController.php  Dashboard, homework, exams, manifest, /setup helper
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function
 translations/{en,de}.yaml      UI strings, English and German

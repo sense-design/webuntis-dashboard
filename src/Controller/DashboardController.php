@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\I18n\Translator;
 use App\Untis\ConfigLoader;
+use App\Untis\Exam;
 use App\Untis\Homework;
 use App\Untis\Lesson;
 use App\Untis\TimetableProvider;
@@ -103,6 +104,43 @@ final class DashboardController extends AbstractController
 
         return $this->render('dashboard.html.twig', [
             'view' => 'homework',
+            'students' => $students,
+            'is_today' => true,
+            'refresh_seconds' => $this->config->refreshSeconds(),
+            'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+        ]);
+    }
+
+    /**
+     * The exams view: every student's upcoming exams, sorted by date. It has
+     * no day pager because, like homework, it is not day-scoped.
+     */
+    #[Route('/exams', name: 'exams', methods: ['GET'])]
+    public function exams(): Response
+    {
+        $timezone = $this->config->timezone();
+
+        $students = $this->provider->fetchExams();
+        foreach ($students as $index => $student) {
+            $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+            $students[$index]['exams'] = array_map(
+                fn (Exam $exam): array => [
+                    'subject' => $exam->subject,
+                    'type' => $exam->type,
+                    'name' => $exam->name,
+                    'text' => $exam->text,
+                    'date' => $this->formatDayCompact($exam->date),
+                    'start' => $exam->start,
+                    'end' => $exam->end,
+                    'teachers' => $exam->teachers,
+                    'rooms' => $exam->rooms,
+                ],
+                $student['exams'],
+            );
+        }
+
+        return $this->render('dashboard.html.twig', [
+            'view' => 'exams',
             'students' => $students,
             'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
