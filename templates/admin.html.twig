@@ -20,6 +20,11 @@
 
     <header class="day">
         <h1>{{ t('admin.title') }}</h1>
+
+        <nav class="subviews" aria-label="{{ t('admin.title') }} / {{ t('admin.hide_subjects') }}">
+            <a class="subviews__link subviews__link--active" href="{{ path('admin', {token: token}) }}" aria-current="page">{{ t('admin.title') }}</a>
+            <a class="subviews__link" href="{{ path('admin_subjects', {token: token}) }}">{{ t('admin.hide_subjects') }}</a>
+        </nav>
     </header>
 
     <div class="admin__card">
@@ -72,36 +77,6 @@
                     <input type="checkbox" name="feature_free_periods"{{ settings.features.free_periods ? ' checked' : '' }}>
                     {{ t('admin.feature_free_periods') }}
                 </label>
-            </fieldset>
-
-            <fieldset class="admin__field">
-                <legend>{{ t('admin.hide_subjects') }}</legend>
-                <p class="admin__hint">{{ t('admin.hide_subjects_hint') }}</p>
-
-                {% for student in students %}
-                    <div class="admin__subjects">
-                        <p class="admin__subjects-name">{{ student.name }}</p>
-                        {% if student.error %}
-                            <p class="admin__hint">{{ t('student.error', {message: student.error}) }}</p>
-                        {% else %}
-                            {# Marks this student's checklist as authoritative for the save,
-                               so an empty one is saved as "hide nothing" rather than being
-                               mistaken for a student whose fetch failed (see
-                               AdminController::readSubmittedSettings()). #}
-                            <input type="hidden" name="hide_subjects_shown[]" value="{{ student.name }}">
-                            {% if student.subjects is empty %}
-                                <p class="admin__hint">{{ t('admin.hide_subjects_none') }}</p>
-                            {% else %}
-                                {% for subject in student.subjects %}
-                                    <label class="admin__checkbox">
-                                        <input type="checkbox" name="hide_subjects[{{ student.name }}][]" value="{{ subject.name }}"{{ subject.hidden ? ' checked' : '' }}>
-                                        {{ subject.name }}
-                                    </label>
-                                {% endfor %}
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                {% endfor %}
             </fieldset>
 
             <div class="admin__actions">

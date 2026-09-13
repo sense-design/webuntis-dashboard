@@ -568,6 +568,10 @@ body {
     padding: 1.5rem;
 }
 
+.admin__card + .admin__card {
+    margin-top: 1.25rem;
+}
+
 .admin__notice {
     margin: 0 0 1.25rem;
     padding: 0.6rem 0.85rem;
@@ -585,7 +589,8 @@ body {
 }
 
 .admin__field label,
-.admin__field legend {
+.admin__field legend,
+.admin__field-title {
     display: block;
     margin: 0 0 0.35rem;
     font-size: 0.9375rem;
@@ -609,6 +614,16 @@ body {
     color: var(--muted);
 }
 
+.admin__hint a {
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.admin__hint a:hover,
+.admin__hint a:focus-visible {
+    text-decoration: underline;
+}
+
 .admin__checkbox {
     display: flex;
     align-items: center;
@@ -618,23 +633,26 @@ body {
     font-weight: 400;
 }
 
-.admin__subjects {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--rule);
+.admin__subjects-card {
+    background: var(--card);
+    border-radius: 6px;
+    padding: 1.25rem 1.25rem 0.5rem;
 }
 
 .admin__subjects-name {
-    margin: 0 0 0.35rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--muted);
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
 }
 
 .admin__actions {
     display: flex;
     align-items: center;
     gap: 1rem;
+    margin-top: 1.25rem;
 }
 
 .admin__actions button {

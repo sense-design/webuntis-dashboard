@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}"{% if theme != 'system' %} data-theme="{{ theme }}"{% endif %}>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ t('admin.hide_subjects') }}</title>
+    <link rel="stylesheet" href="{{ asset('assets/style.css') }}">
+    <link rel="icon" href="{{ asset('icon.svg') }}" type="image/svg+xml">
+    {% if theme == 'dark' %}
+        <meta name="theme-color" content="#14171A">
+    {% elseif theme == 'light' %}
+        <meta name="theme-color" content="#ECEEF0">
+    {% else %}
+        <meta name="theme-color" content="#ECEEF0" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#14171A" media="(prefers-color-scheme: dark)">
+    {% endif %}
+</head>
+<body>
+<main class="dashboard admin">
+
+    <header class="day">
+        <h1>{{ t('admin.hide_subjects') }}</h1>
+
+        <nav class="subviews" aria-label="{{ t('admin.title') }} / {{ t('admin.hide_subjects') }}">
+            <a class="subviews__link" href="{{ path('admin', {token: token}) }}">{{ t('admin.title') }}</a>
+            <a class="subviews__link subviews__link--active" href="{{ path('admin_subjects', {token: token}) }}" aria-current="page">{{ t('admin.hide_subjects') }}</a>
+        </nav>
+
+        {% if saved %}
+            <p class="admin__notice">{{ t('admin.saved') }}</p>
+        {% endif %}
+
+        <p class="admin__hint">{{ t('admin.hide_subjects_hint') }}</p>
+    </header>
+
+    <form method="post" action="{{ path('admin_subjects', {token: token}) }}">
+        <div class="columns">
+            {% for student in students %}
+                <div class="admin__subjects-card">
+                    <p class="admin__subjects-name">{{ student.name }}</p>
+                    {% if student.error %}
+                        <p class="admin__hint">{{ t('student.error', {message: student.error}) }}</p>
+                    {% else %}
+                        {# Marks this student's checklist as authoritative for the save,
+                           so an empty one is saved as "hide nothing" rather than being
+                           mistaken for a student whose fetch failed (see
+                           AdminController::readSubmittedHideSubjects()). #}
+                        <input type="hidden" name="hide_subjects_shown[]" value="{{ student.name }}">
+                        {% if student.subjects is empty %}
+                            <p class="admin__hint">{{ t('admin.hide_subjects_none') }}</p>
+                        {% else %}
+                            {% for subject in student.subjects %}
+                                <label class="admin__checkbox">
+                                    <input type="checkbox" name="hide_subjects[{{ student.name }}][]" value="{{ subject.name }}"{{ subject.hidden ? ' checked' : '' }}>
+                                    {{ subject.name }}
+                                </label>
+                            {% endfor %}
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="admin__actions">
+            <button type="submit">{{ t('admin.save') }}</button>
+            <a class="admin__back" href="{{ path('admin', {token: token}) }}">{{ t('admin.back_to_settings') }}</a>
+        </div>
+    </form>
+
+</main>
+</body>
+</html>
