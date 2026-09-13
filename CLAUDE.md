@@ -23,7 +23,7 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
   work in both themes. Theme defaults to following the system setting; the
   `theme` setting (`system`/`light`/`dark`, `/admin` or `theme` in
   `untis.yaml`) can pin it instead via `html[data-theme]`
-  (`ConfigLoader::theme()`, set on `<html>` in both templates — omitted
+  (`ConfigLoader::theme()`, set on `<html>` in all three templates — omitted
   entirely for `system`, so the `@media (prefers-color-scheme: dark)` block
   is what applies then). The dark tokens are declared twice in `style.css`
   on purpose: once gated by that media query for the system-follows case,
@@ -42,18 +42,29 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
   that lives only in `untis.yaml` (accounts, students, server/school,
   timezone, either token) — those stay a manual edit on purpose. The one
   per-student exception is `hide_subjects`: not a credential, and exposed
-  through `/admin` keyed by student *name* (`ConfigLoader::hiddenSubjects()`)
-  rather than by array index, so it survives untis.yaml being reordered or
-  gaining a new student. A save always resubmits every currently-known
-  student, so a student whose live subject fetch fails on the way in must be
-  left out of that resubmission (via the `hide_subjects_shown` marker in
-  `admin.html.twig`) rather than saved as empty — otherwise a WebUntis
-  hiccup during an unrelated field change would silently clear their hidden
-  subjects. `AdminController::admin()` also clears the whole cache pool
-  after every save: unlike the other settings, `hide_subjects` is baked into
-  `TimetableProvider::fetchDay()`'s cached result at fetch time rather than
-  read fresh at render time, so without the clear a change would sit
-  invisible for up to `cache_ttl` seconds on every day already cached.
+  through its own page, `/admin/subjects` (same `admin_token` gate, reached
+  from `/admin` via the same `.subviews` tab-pair component the
+  homework/done split uses, kept apart from the general settings form
+  because it needs a live WebUntis fetch to build its checklist rather than
+  just reading `untis.yaml`), keyed by student *name* (`ConfigLoader::hiddenSubjects()` /
+  `allHiddenSubjects()`) rather than by array index, so it survives
+  untis.yaml being reordered or gaining a new student. Both `/admin` and
+  `/admin/subjects` save through the same `ConfigLoader::saveSettings()`,
+  which replaces the whole settings file — so each route's save must carry
+  forward the *other* route's slice unchanged (`readSubmittedSettings()`
+  reuses `allHiddenSubjects()` as-is; `subjects()` starts from
+  `currentSettings()`), or one page's save would silently erase the other's
+  values. A subjects save always resubmits every currently-known student, so
+  a student whose live subject fetch fails on the way in must be left out of
+  that resubmission (via the `hide_subjects_shown` marker in
+  `admin_subjects.html.twig`) rather than saved as empty — otherwise a
+  WebUntis hiccup during an unrelated field change would silently clear
+  their hidden subjects. `AdminController::subjects()` also clears the whole
+  cache pool after every save (`admin()` does not need to): unlike the other
+  settings, `hide_subjects` is baked into `TimetableProvider::fetchDay()`'s
+  cached result at fetch time rather than read fresh at render time, so
+  without the clear a change would sit invisible for up to `cache_ttl`
+  seconds on every day already cached.
 - Marking homework done (`/homework/{id}/done` and `/homework/{id}/open`) is
   purely local, the same "layer state in `var/`, never touch WebUntis or
   `untis.yaml`" pattern as `/admin` settings — see `HomeworkTracker`. It is

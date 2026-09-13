@@ -79,16 +79,18 @@ the token from the config to disable the route entirely.
 
 ### Changing settings without editing the config
 
-Language, light/dark appearance, cache/refresh timing, the optional
-features, and which subjects each student has hidden can all be changed
-from a small form at
-`/admin?token=<admin_token>`, set the same way as `setup_token` above. The
-subject checklist is built live from each student's own WebUntis timetable
-over the next two weeks, so there is nothing to type by hand there either.
-Saves go to `var/settings.yaml`, not `config/untis.yaml` — that file, and
-the credentials in it, are never written to by the app. A saved setting
-wins over the matching key in `config/untis.yaml`; delete `var/settings.yaml`
-(or clear `admin_token` to lock the route) to fall back to the config file
+Language, light/dark appearance, cache/refresh timing and the optional
+features can all be changed from a small form at
+`/admin?token=<admin_token>`, set the same way as `setup_token` above. Which
+subjects each student has hidden lives on its own page, linked from there,
+at `/admin/subjects?token=<admin_token>` — kept apart from the general
+settings since its checklist is built live from each student's own WebUntis
+timetable over the next two weeks rather than just read from the config, so
+there is nothing to type by hand there either. Both save to
+`var/settings.yaml`, not `config/untis.yaml` — that file, and the
+credentials in it, are never written to by the app. A saved setting wins
+over the matching key in `config/untis.yaml`; delete `var/settings.yaml`
+(or clear `admin_token` to lock both routes) to fall back to the config file
 again.
 
 ## Deployment
@@ -212,12 +214,13 @@ src/Untis/HomeworkTracker.php   Local "done" marks, layered over Homework, never
 src/Untis/Exam.php              One upcoming exam
 src/Asset/MtimeVersionStrategy.php      asset() cache-busting, keyed by file mtime
 src/Controller/DashboardController.php  Dashboard, homework, exams, manifest, /setup helper
-src/Controller/AdminController.php      /admin settings form, reads and saves via ConfigLoader
+src/Controller/AdminController.php      /admin settings form and /admin/subjects, reads and saves via ConfigLoader
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function
 translations/{en,de}.yaml      UI strings, English and German
 templates/dashboard.html.twig   The page
 templates/admin.html.twig       The settings form
+templates/admin_subjects.html.twig      The hide_subjects form
 public/assets/style.css         The styles
 public/icon.svg                 Home screen / favicon source (PNGs generated from it)
 ```

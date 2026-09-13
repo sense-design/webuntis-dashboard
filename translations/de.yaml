@@ -46,6 +46,7 @@ exams:
 admin:
     title: 'Einstellungen'
     back: 'Zurück zum Dashboard'
+    back_to_settings: 'Zurück zu den Einstellungen'
     locale: 'Sprache'
     locale_en: 'Englisch'
     locale_de: 'Deutsch'

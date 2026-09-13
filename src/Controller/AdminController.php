@@ -14,16 +14,19 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * A small settings form for the handful of display/behaviour options that
- * are safe to change without editing untis.yaml by hand: language, cache and
- * refresh timing, the optional features, and which subjects each student
- * has hidden. It never touches accounts, students or any other credential
- * in untis.yaml - those stay a manual edit.
+ * Two small maintenance pages for options that are safe to change without
+ * editing untis.yaml by hand: this controller never touches accounts,
+ * students or any other credential in untis.yaml - those stay a manual
+ * edit. `/admin` covers language, appearance, cache/refresh timing and the
+ * optional features; `/admin/subjects` - a separate page on purpose, kept
+ * out of the general settings form - covers which subjects each student
+ * has hidden.
  *
- * Guarded by the `admin_token` config key, the same way `/setup` is guarded
- * by `setup_token`: without a matching `?token=` the route behaves as if it
- * did not exist. Saved values are written to var/settings.yaml by
- * ConfigLoader::saveSettings(), never to untis.yaml itself.
+ * Both are guarded by the `admin_token` config key, the same way `/setup`
+ * is guarded by `setup_token`: without a matching `?token=` the route
+ * behaves as if it did not exist. Saved values are written to
+ * var/settings.yaml by ConfigLoader::saveSettings(), never to untis.yaml
+ * itself.
  */
 final class AdminController extends AbstractController
 {
@@ -41,20 +44,10 @@ final class AdminController extends AbstractController
     #[Route('/admin', name: 'admin', methods: ['GET', 'POST'])]
     public function admin(Request $request): Response
     {
-        $expected = (string) ($this->config->load()['admin_token'] ?? '');
-        $given = (string) $request->query->get('token', '');
-        if ('' === $expected || !hash_equals($expected, $given)) {
-            throw $this->createNotFoundException();
-        }
+        $given = $this->checkToken($request);
 
         if ($request->isMethod('POST')) {
             $this->config->saveSettings($this->readSubmittedSettings($request));
-
-            // hide_subjects is applied inside TimetableProvider::fetchDay()'s
-            // cached result, not read fresh at render time like the other
-            // settings, so without this a change here would sit invisible
-            // for up to cache_ttl seconds on every day already cached.
-            $this->cache->clear();
 
             return $this->redirectToRoute('admin', ['token' => $given, 'saved' => 1]);
         }
@@ -63,7 +56,6 @@ final class AdminController extends AbstractController
             'settings' => $this->config->currentSettings(),
             'locales' => Translator::SUPPORTED,
             'themes' => self::THEMES,
-            'students' => $this->studentSubjectOptions(),
             'token' => $given,
             'saved' => '1' === $request->query->get('saved'),
         ]);
@@ -71,9 +63,10 @@ final class AdminController extends AbstractController
 
     /**
      * The posted form, sanitised to the same shape ConfigLoader::currentSettings()
-     * returns, plus `hide_subjects`. An unknown locale or theme is dropped
-     * back to the current one rather than saved as-is, since nothing would
-     * recognise it.
+     * returns. An unknown locale or theme is dropped back to the current one
+     * rather than saved as-is, since nothing would recognise it.
+     * `hide_subjects` is untouched by this form - see subjects() - so it is
+     * carried forward as-is rather than defaulting back to untis.yaml.
      *
      * @return array{locale: string, theme: string, cache_ttl: int, refresh_seconds: int, features: array{homework: bool, exams: bool, free_periods: bool}, hide_subjects: array<string, list<string>>}
      */
@@ -82,17 +75,67 @@ final class AdminController extends AbstractController
         $locale = (string) $request->request->get('locale', '');
         $theme = (string) $request->request->get('theme', '');
 
-        // Every currently configured student defaults to whatever is
-        // already saved for them, untouched, and is only overwritten below
-        // for a student whose checklist actually rendered on the form (see
-        // hide_subjects_shown / the template). That is what stops a student
-        // whose live subject fetch happened to fail during an unrelated
-        // save (a locale change, say) from silently losing every hidden
-        // subject they had.
-        $hideSubjects = [];
-        foreach ($this->config->students() as $student) {
-            $hideSubjects[$student['name']] = $this->config->hiddenSubjects($student['name']);
+        return [
+            'locale' => \in_array($locale, Translator::SUPPORTED, true) ? $locale : $this->config->locale(),
+            'theme' => \in_array($theme, self::THEMES, true) ? $theme : $this->config->theme(),
+            'cache_ttl' => max(0, $request->request->getInt('cache_ttl', $this->config->cacheTtl())),
+            'refresh_seconds' => max(0, $request->request->getInt('refresh_seconds', $this->config->refreshSeconds())),
+            'features' => [
+                'homework' => $request->request->getBoolean('feature_homework'),
+                'exams' => $request->request->getBoolean('feature_exams'),
+                'free_periods' => $request->request->getBoolean('feature_free_periods'),
+            ],
+            'hide_subjects' => $this->config->allHiddenSubjects(),
+        ];
+    }
+
+    /**
+     * The hide-subjects page: a checklist per student of the subjects
+     * WebUntis has on record for them, kept apart from the general settings
+     * form since it needs a live WebUntis fetch to build (see
+     * studentSubjectOptions()) rather than just reading untis.yaml.
+     */
+    #[Route('/admin/subjects', name: 'admin_subjects', methods: ['GET', 'POST'])]
+    public function subjects(Request $request): Response
+    {
+        $given = $this->checkToken($request);
+
+        if ($request->isMethod('POST')) {
+            $settings = $this->config->currentSettings();
+            $settings['hide_subjects'] = $this->readSubmittedHideSubjects($request);
+            $this->config->saveSettings($settings);
+
+            // hide_subjects is applied inside TimetableProvider::fetchDay()'s
+            // cached result, not read fresh at render time like the settings
+            // on the main /admin page, so without this a change here would
+            // sit invisible for up to cache_ttl seconds on every day already
+            // cached.
+            $this->cache->clear();
+
+            return $this->redirectToRoute('admin_subjects', ['token' => $given, 'saved' => 1]);
         }
+
+        return $this->render('admin_subjects.html.twig', [
+            'theme' => $this->config->theme(),
+            'students' => $this->studentSubjectOptions(),
+            'token' => $given,
+            'saved' => '1' === $request->query->get('saved'),
+        ]);
+    }
+
+    /**
+     * Every currently configured student defaults to whatever is already
+     * saved for them, untouched, and is only overwritten below for a
+     * student whose checklist actually rendered on the form (see
+     * hide_subjects_shown / admin_subjects.html.twig). That is what stops a
+     * student whose live subject fetch happened to fail from silently
+     * losing every hidden subject they had.
+     *
+     * @return array<string, list<string>>
+     */
+    private function readSubmittedHideSubjects(Request $request): array
+    {
+        $hideSubjects = $this->config->allHiddenSubjects();
 
         $posted = $request->request->all('hide_subjects');
         foreach ($request->request->all('hide_subjects_shown') as $studentName) {
@@ -107,18 +150,7 @@ final class AdminController extends AbstractController
             )));
         }
 
-        return [
-            'locale' => \in_array($locale, Translator::SUPPORTED, true) ? $locale : $this->config->locale(),
-            'theme' => \in_array($theme, self::THEMES, true) ? $theme : $this->config->theme(),
-            'cache_ttl' => max(0, $request->request->getInt('cache_ttl', $this->config->cacheTtl())),
-            'refresh_seconds' => max(0, $request->request->getInt('refresh_seconds', $this->config->refreshSeconds())),
-            'features' => [
-                'homework' => $request->request->getBoolean('feature_homework'),
-                'exams' => $request->request->getBoolean('feature_exams'),
-                'free_periods' => $request->request->getBoolean('feature_free_periods'),
-            ],
-            'hide_subjects' => $hideSubjects,
-        ];
+        return $hideSubjects;
     }
 
     /**
@@ -166,5 +198,22 @@ final class AdminController extends AbstractController
             },
             $this->provider->fetchSubjects(),
         );
+    }
+
+    /**
+     * Guards both routes the same way `/setup` guards itself: without a
+     * `?token=` matching `admin_token`, a 404 as if the route did not exist.
+     * Returns the given token so callers can pass it straight back into
+     * path()/redirectToRoute() without reading the query string twice.
+     */
+    private function checkToken(Request $request): string
+    {
+        $expected = (string) ($this->config->load()['admin_token'] ?? '');
+        $given = (string) $request->query->get('token', '');
+        if ('' === $expected || !hash_equals($expected, $given)) {
+            throw $this->createNotFoundException();
+        }
+
+        return $given;
     }
 }

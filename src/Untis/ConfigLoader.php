@@ -152,6 +152,25 @@ final class ConfigLoader
     }
 
     /**
+     * hiddenSubjects() for every configured student at once, keyed by name.
+     * The base a save layers its own edits onto: a save that does not touch
+     * subjects at all (the general settings form), or only touches one
+     * student's, preserves everyone else's untouched, since saveSettings()
+     * replaces the whole settings file rather than merging into it.
+     *
+     * @return array<string, list<string>>
+     */
+    public function allHiddenSubjects(): array
+    {
+        $all = [];
+        foreach ($this->students() as $student) {
+            $all[$student['name']] = $this->hiddenSubjects($student['name']);
+        }
+
+        return $all;
+    }
+
+    /**
      * The current admin-editable settings, as they would be shown pre-filled
      * on the `/admin` form: saved overrides where they exist, the matching
      * untis.yaml value or built-in default otherwise.
