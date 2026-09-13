@@ -95,6 +95,14 @@ again.
 
 ## Deployment
 
+The dashboard shows where two children are at any hour of the day. Put HTTP basic
+auth, an IP allowlist, or your existing SSO in front of it, and serve it over
+TLS only. `config/untis.yaml` holds credentials in cleartext, so it is gitignored
+and should be `chmod 600` and owned by the PHP-FPM user (bare metal) or
+mounted read-only (Docker).
+
+### Bare metal
+
 `nginx.conf.example` is a complete vhost. Document root is `public/`, everything
 routes through `index.php`, and PHP-FPM is the only moving part.
 
@@ -105,10 +113,42 @@ query string (`App\Asset\MtimeVersionStrategy`). A deploy that touches
 of serving the old file for up to a week - no manual version bump, no build
 step.
 
-The dashboard shows where two children are at any hour of the day. Put HTTP basic
-auth, an IP allowlist, or your existing SSO in front of it, and serve it over
-TLS only. `config/untis.yaml` holds credentials in cleartext, so it is gitignored
-and should be `chmod 600` and owned by the PHP-FPM user.
+### Docker
+
+`Dockerfile` builds one self-contained image - nginx and PHP-FPM in the same
+container, no separate services to wire up. `composer install` runs once, at
+build time; nothing else about the app needs a build step. `config/untis.yaml`
+and `var/` (the cache, plus anything saved from `/admin`) are never baked into
+the image; both are mounted at runtime instead, so the same image works for
+every family without rebuilding it.
+
+```bash
+cp config/untis.yaml.dist config/untis.yaml   # fill it in, as above
+cp .env.docker.dist .env.docker
+echo "APP_SECRET=$(openssl rand -hex 16)" > .env.docker
+
+docker compose up -d --build
+```
+
+The dashboard is then at `http://localhost:8080`. `docker-compose.yml` mounts
+`config/untis.yaml` read-only and keeps `var/` in a named volume, so admin
+settings and cache survive a restart or a rebuild after `git pull`. Without
+Compose, the equivalent is:
+
+```bash
+docker build -t webuntis-dashboard .
+docker run -d --name webuntis-dashboard \
+    -p 8080:80 \
+    -e APP_SECRET="$(openssl rand -hex 16)" \
+    -v "$(pwd)/config/untis.yaml:/var/www/html/config/untis.yaml:ro" \
+    -v webuntis-dashboard-var:/var/www/html/var \
+    webuntis-dashboard
+```
+
+The container serves plain HTTP; put TLS, basic auth or an IP allowlist on
+whatever reverse proxy sits in front of it, the same as the bare-metal setup
+above. Starting it without `config/untis.yaml` mounted fails fast with a clear
+error instead of a confusing 500 on every request.
 
 ## Options
 
@@ -223,6 +263,10 @@ templates/admin.html.twig       The settings form
 templates/admin_subjects.html.twig      The hide_subjects form
 public/assets/style.css         The styles
 public/icon.svg                 Home screen / favicon source (PNGs generated from it)
+Dockerfile                      Single image: nginx + PHP-FPM, composer install at build time
+docker/nginx.conf                       Container vhost, the plain-HTTP equivalent of nginx.conf.example
+docker/entrypoint.sh                    Fixes up var/ ownership, fails fast without config/untis.yaml
+docker-compose.yml               Volumes + env_file wrapper around the image
 ```
 
 ## Author

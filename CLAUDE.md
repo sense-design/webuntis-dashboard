@@ -1,7 +1,9 @@
 # WebUntis Dashboard
 
 Standalone Symfony 7 app that renders one day of WebUntis timetable data for
-several students. Runs on nginx + PHP-FPM only; no database, no build step.
+several students. Runs on nginx + PHP-FPM only; no database, no build step
+for the app itself (bare metal, per `nginx.conf.example`, or the one-image
+`Dockerfile` - same nginx + PHP-FPM, just both in one container).
 
 ## Rules
 
@@ -72,6 +74,15 @@ several students. Runs on nginx + PHP-FPM only; no database, no build step.
   dashboard (already restricted at the network level, per the README) can
   tick a box, since this is meant for everyday use by the whole family, not
   a maintenance action.
+- `config/untis.yaml` and `var/` are never baked into the Docker image
+  (`.dockerignore` + a belt-and-suspenders `rm` in the build stage for the
+  former) - both are mounted at container start instead, same "credentials
+  and runtime state stay outside the app" rule as bare metal, just via
+  volumes rather than gitignored host paths. `docker/entrypoint.sh` checks
+  for the mounted `config/untis.yaml` and exits with a clear message if it
+  is missing, rather than letting every request 500. Don't add anything
+  that writes inside the image itself at runtime - it won't be there after
+  a restart unless it is under `var/`, the one path that is a volume.
 
 ## Gotchas
 

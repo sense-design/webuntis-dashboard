@@ -1,0 +1,10 @@
+# Never let the credentials file end up in a shareable image.
+config/untis.yaml
+
+.git
+.ddev
+.idea
+var/
+vendor/
+docs/
+.env.local
