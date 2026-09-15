@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\I18n\Translator;
+use App\Untis\CacheInfo;
 use App\Untis\ConfigLoader;
 use App\Untis\Exam;
 use App\Untis\Homework;
@@ -56,7 +57,7 @@ final class DashboardController extends AbstractController
             }
         }
 
-        $students = $this->provider->fetchDay($day);
+        [$students, $cacheInfo] = $this->provider->fetchDay($day);
         foreach ($students as $index => $student) {
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
             $students[$index]['entries'] = $this->withFreePeriods(
@@ -88,7 +89,7 @@ final class DashboardController extends AbstractController
             'changes' => $changes,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'theme' => $this->config->theme(),
-            'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            ...$this->cacheStatus($cacheInfo, $timezone),
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => $this->config->examsEnabled(),
             'admin_token' => $this->adminToken(),
@@ -115,7 +116,7 @@ final class DashboardController extends AbstractController
         $today = new \DateTimeImmutable('today', $timezone);
         $toArray = fn (Homework $homework): array => $this->homeworkToArray($homework, $today);
 
-        $students = $this->fetchAndPruneHomework();
+        [$students, $cacheInfo] = $this->fetchAndPruneHomework();
         $openCount = 0;
         $doneCount = 0;
         foreach ($students as $index => $student) {
@@ -134,7 +135,7 @@ final class DashboardController extends AbstractController
             'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'theme' => $this->config->theme(),
-            'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            ...$this->cacheStatus($cacheInfo, $timezone),
             'homework_enabled' => true,
             'exams_enabled' => $this->config->examsEnabled(),
             'admin_token' => $this->adminToken(),
@@ -159,7 +160,7 @@ final class DashboardController extends AbstractController
         $today = new \DateTimeImmutable('today', $timezone);
         $toArray = fn (Homework $homework): array => $this->homeworkToArray($homework, $today);
 
-        $students = $this->fetchAndPruneHomework();
+        [$students, $cacheInfo] = $this->fetchAndPruneHomework();
         $openCount = 0;
         $doneCount = 0;
         foreach ($students as $index => $student) {
@@ -178,7 +179,7 @@ final class DashboardController extends AbstractController
             'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'theme' => $this->config->theme(),
-            'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            ...$this->cacheStatus($cacheInfo, $timezone),
             'homework_enabled' => true,
             'exams_enabled' => $this->config->examsEnabled(),
             'admin_token' => $this->adminToken(),
@@ -231,7 +232,7 @@ final class DashboardController extends AbstractController
 
         $timezone = $this->config->timezone();
 
-        $students = $this->provider->fetchExams();
+        [$students, $cacheInfo] = $this->provider->fetchExams();
         foreach ($students as $index => $student) {
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
             $students[$index]['exams'] = array_map(
@@ -256,7 +257,7 @@ final class DashboardController extends AbstractController
             'is_today' => true,
             'refresh_seconds' => $this->config->refreshSeconds(),
             'theme' => $this->config->theme(),
-            'updated_at' => (new \DateTimeImmutable('now', $timezone))->format('H:i'),
+            ...$this->cacheStatus($cacheInfo, $timezone),
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => true,
             'admin_token' => $this->adminToken(),
@@ -448,11 +449,11 @@ final class DashboardController extends AbstractController
      * show up anywhere. Shared by homework() and homeworkDone(), which each
      * then pick their half with HomeworkTracker::split().
      *
-     * @return list<array{name: string, homework: list<Homework>, error: ?string, accent: string}>
+     * @return array{0: list<array{name: string, homework: list<Homework>, error: ?string, accent: string}>, 1: CacheInfo}
      */
     private function fetchAndPruneHomework(): array
     {
-        $students = $this->provider->fetchHomework();
+        [$students, $cacheInfo] = $this->provider->fetchHomework();
 
         // Prune with every student's ids together - pruning against one
         // student's list alone would drop the marks belonging to the others.
@@ -468,6 +469,18 @@ final class DashboardController extends AbstractController
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
         }
 
-        return $students;
+        return [$students, $cacheInfo];
+    }
+
+    /**
+     * @return array{updated_at: string, from_cache: bool, cache_minutes_left: int}
+     */
+    private function cacheStatus(CacheInfo $info, \DateTimeZone $timezone): array
+    {
+        return [
+            'updated_at' => $info->fetchedAt->format('H:i'),
+            'from_cache' => $info->fromCache,
+            'cache_minutes_left' => $info->minutesLeft(new \DateTimeImmutable('now', $timezone)),
+        ];
     }
 }

@@ -27,17 +27,14 @@ final class TimetableProvider
     }
 
     /**
-     * @return list<array{name: string, lessons: list<Lesson>, error: ?string}>
+     * @return array{0: list<array{name: string, lessons: list<Lesson>, error: ?string}>, 1: CacheInfo}
      */
     public function fetchDay(\DateTimeInterface $day): array
     {
-        $key = 'webuntis_dashboard.day.'.$day->format('Y-m-d');
-
-        return $this->cache->get($key, function (ItemInterface $item) use ($day) {
-            $item->expiresAfter($this->config->cacheTtl());
-
-            return $this->fetchUncached($day);
-        });
+        return $this->cachedGet(
+            'webuntis_dashboard.day.'.$day->format('Y-m-d'),
+            fn () => $this->fetchUncached($day),
+        );
     }
 
     /**
@@ -45,30 +42,60 @@ final class TimetableProvider
      * tied to a day: WebUntis is asked for a window around today and the
      * client keeps whatever is still outstanding.
      *
-     * @return list<array{name: string, homework: list<Homework>, error: ?string}>
+     * @return array{0: list<array{name: string, homework: list<Homework>, error: ?string}>, 1: CacheInfo}
      */
     public function fetchHomework(): array
     {
-        return $this->cache->get('webuntis_dashboard.homework', function (ItemInterface $item) {
-            $item->expiresAfter($this->config->cacheTtl());
-
-            return $this->fetchHomeworkUncached();
-        });
+        return $this->cachedGet('webuntis_dashboard.homework', fn () => $this->fetchHomeworkUncached());
     }
 
     /**
      * Upcoming exams for every configured student, soonest first. Not tied
      * to a day: WebUntis is asked for a window starting today.
      *
-     * @return list<array{name: string, exams: list<Exam>, error: ?string}>
+     * @return array{0: list<array{name: string, exams: list<Exam>, error: ?string}>, 1: CacheInfo}
      */
     public function fetchExams(): array
     {
-        return $this->cache->get('webuntis_dashboard.exams', function (ItemInterface $item) {
-            $item->expiresAfter($this->config->cacheTtl());
+        return $this->cachedGet('webuntis_dashboard.exams', fn () => $this->fetchExamsUncached());
+    }
 
-            return $this->fetchExamsUncached();
-        });
+    /**
+     * Wraps CacheInterface::get() so every cached fetch also reports how it
+     * was served: fetched fresh just now, or from an earlier fetch still
+     * within cache_ttl - shown in the footer so "why hasn't this changed
+     * yet" has an answer. $hit is set from inside the compute callback,
+     * which Symfony only calls on a cache miss, so its final value tells
+     * the two apart. Expiry comes back through $metadata rather than being
+     * stored in the payload, so it stays correct even if cache_ttl changes
+     * between one write and the next read.
+     *
+     * @template T
+     *
+     * @param callable(): T $compute
+     *
+     * @return array{0: T, 1: CacheInfo}
+     */
+    private function cachedGet(string $key, callable $compute): array
+    {
+        $timezone = $this->config->timezone();
+        $ttl = $this->config->cacheTtl();
+        $hit = true;
+        $metadata = [];
+
+        $value = $this->cache->get($key, function (ItemInterface $item) use ($compute, $ttl, &$hit) {
+            $hit = false;
+            $item->expiresAfter($ttl);
+
+            return $compute();
+        }, null, $metadata);
+
+        $expiresAt = isset($metadata[ItemInterface::METADATA_EXPIRY])
+            ? (new \DateTimeImmutable('@'.(int) $metadata[ItemInterface::METADATA_EXPIRY]))->setTimezone($timezone)
+            : (new \DateTimeImmutable('now', $timezone))->modify(\sprintf('+%d seconds', $ttl));
+        $fetchedAt = $expiresAt->modify(\sprintf('-%d seconds', $ttl));
+
+        return [$value, new CacheInfo($fetchedAt, $expiresAt, $hit)];
     }
 
     /**
