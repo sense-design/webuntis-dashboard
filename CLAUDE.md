@@ -127,3 +127,13 @@ for the app itself (bare metal, per `nginx.conf.example`, or the one-image
   ones, and is the only place that reads either key. Do not read
   `$config['server']`/`['school']` directly anywhere else, `connect()`
   included; that would silently ignore a per-account override.
+- `TimetableProvider::fetchDay()`/`fetchHomework()`/`fetchExams()` each
+  return `[data, CacheInfo]`, not just `data` - `CacheInfo` (fetchedAt,
+  expiresAt, fromCache) is what the footer's "Fetched at" / "cached, N min
+  left" comes from. It is derived from the cache item's own expiry metadata
+  (`$metadata[ItemInterface::METADATA_EXPIRY]` from `CacheInterface::get()`'s
+  by-ref `$metadata` param) rather than stored in the cached payload, so it
+  stays correct even if `cache_ttl` changes between one write and the next
+  read. `fromCache` is set from inside the compute callback (`$hit = false`
+  there), which Symfony only calls on a miss - do not try to derive hit/miss
+  from the metadata itself, it is populated the same way either way.

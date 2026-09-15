@@ -238,6 +238,10 @@ The home screen label comes from `app.name` in the translation catalogues.
 - The page follows the system's light/dark setting by default; `theme` (see
   Options, or `/admin`) pins it to light or dark instead. Every colour is a
   CSS custom property, redeclared once for dark mode.
+- The footer's "Fetched at" time is when WebUntis was actually asked, not
+  when the page happened to render - a page served from cache says so and
+  shows how many minutes are left before the next visit asks WebUntis
+  again.
 
 ## Possible next steps
 

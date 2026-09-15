@@ -78,6 +78,7 @@ header:
 
 footer:
     updated: 'Abgerufen um {time}'
+    cached: 'aus dem Cache, noch {minutes} Min. gültig'
     today: 'Zurück zu heute'
     admin: 'Einstellungen'
     tagline: 'Mit {heart} für Open Source gebaut'

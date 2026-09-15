@@ -246,6 +246,9 @@
     <footer class="site-foot">
         <p class="site-foot__updated">
             {{ t('footer.updated', {time: updated_at}) }}
+            {% if from_cache %}
+                <span class="site-foot__cache">({{ t('footer.cached', {minutes: cache_minutes_left}) }})</span>
+            {% endif %}
             {% if not is_today %}
                 <span aria-hidden="true">·</span>
                 <a href="{{ path('dashboard') }}">{{ t('footer.today') }}</a>

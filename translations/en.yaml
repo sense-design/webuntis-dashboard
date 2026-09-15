@@ -78,6 +78,7 @@ header:
 
 footer:
     updated: 'Fetched at {time}'
+    cached: 'cached, {minutes} min left'
     today: 'Back to today'
     admin: 'Settings'
     tagline: 'Built with {heart} for open source'

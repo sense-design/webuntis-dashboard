@@ -535,6 +535,13 @@ body {
     color: var(--alert);
 }
 
+/* Higher specificity than the generic ".site-foot span" rule below (the
+   middot separators), which would otherwise fade this to var(--rule). */
+.site-foot__updated .site-foot__cache {
+    margin: 0;
+    color: var(--muted);
+}
+
 /* .site-foot__admin needs no margin of its own: it sits right after its own
    <hr class="site-foot__rule">, which already carries the spacing. The
    tagline and the meta line below it are one visual block with no rule
