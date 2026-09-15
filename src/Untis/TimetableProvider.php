@@ -131,13 +131,13 @@ final class TimetableProvider
         }
 
         $account = $accounts[$accountId];
-        $config = $this->config->load();
+        [$server, $school] = $this->config->serverAndSchool($account);
 
         $client = new UntisClient(
             $this->httpClient,
-            $config['server'],
-            $config['school'],
-            $config['user_agent'] ?? 'webuntis-dashboard',
+            $server,
+            $school,
+            $this->config->load()['user_agent'] ?? 'webuntis-dashboard',
         );
 
         return match ($account['method'] ?? 'secret') {

@@ -120,3 +120,10 @@ for the app itself (bare metal, per `nginx.conf.example`, or the one-image
   has to grant, and a parent/student account may simply not have it. That
   surfaces as the normal per-student error, same as any other WebUntis
   failure; it does not mean the request is malformed.
+- `server`/`school` can be set once at the top of `untis.yaml` (one school
+  for everyone) or per `accounts` entry (children at different schools,
+  each with their own login anyway) - `ConfigLoader::serverAndSchool()`
+  resolves one account's pair, its own values falling back to the top-level
+  ones, and is the only place that reads either key. Do not read
+  `$config['server']`/`['school']` directly anywhere else, `connect()`
+  included; that would silently ignore a per-account override.

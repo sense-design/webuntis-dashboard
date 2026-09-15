@@ -1,6 +1,9 @@
 # Copy to config/untis.yaml and fill in. That file is gitignored.
 
-# Host part of your school's WebUntis URL, without https://
+# Host part of your school's WebUntis URL, without https://. The default
+# for every account below; a child at a different school overrides it with
+# its own server:/school: on that account instead (see accounts: further
+# down) rather than changing this.
 server: nessa.webuntis.com
 
 # School login name, exactly as it appears in the WebUntis URL or QR code.
@@ -44,8 +47,8 @@ setup_token: 'change-me'
 # openssl rand -hex 16
 admin_token: 'change-me'
 
-# One entry per WebUntis login. A parent account with two children needs
-# one entry; two separate student logins need two.
+# One entry per WebUntis login. A parent account with two children at the
+# same school needs one entry; two separate student logins need two.
 accounts:
     - id: parent
       method: secret          # secret (recommended) or password
@@ -56,6 +59,15 @@ accounts:
     #   method: password
     #   user: mila.musterfrau
     #   password: 'secret'
+
+    # A child at a different school needs their own server:/school: here -
+    # everything else about that account works the same.
+    # - id: jonas
+    #   method: secret
+    #   user: jonas.musterfrau
+    #   secret: 'QRSTUVWXYZ123456'
+    #   server: other-school.webuntis.com
+    #   school: other-school
 
 # One entry per student shown on the dashboard, in display order.
 students:
