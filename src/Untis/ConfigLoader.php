@@ -7,8 +7,9 @@ namespace App\Untis;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Reads config/untis.yaml, which holds the school, the accounts and the
- * students that should appear on the dashboard.
+ * Reads config/untis.yaml, which holds the school (or schools -
+ * serverAndSchool() resolves it per account), the accounts and the students
+ * that should appear on the dashboard.
  *
  * A handful of display/behaviour settings can also be changed at runtime
  * from `/admin`, without touching the hand-written, credential-holding
@@ -48,7 +49,11 @@ final class ConfigLoader
             throw new UntisException('Config file is empty or not valid YAML.');
         }
 
-        foreach (['server', 'school', 'accounts', 'students'] as $key) {
+        // server/school are not required here: a family with children at
+        // different schools sets them per account instead (see
+        // serverAndSchool()), so the only thing every config needs at the
+        // top level is somewhere to log in and someone to show.
+        foreach (['accounts', 'students'] as $key) {
             if (!isset($parsed[$key])) {
                 throw new UntisException(sprintf('Config key "%s" is missing.', $key));
             }
@@ -66,6 +71,31 @@ final class ConfigLoader
         }
 
         return $accounts;
+    }
+
+    /**
+     * The WebUntis host and school login name for one account: its own
+     * `server`/`school` when set (a child at a different school than the
+     * rest of the family), otherwise the ones at the top of untis.yaml.
+     *
+     * @param array<string, mixed> $account one entry from accounts()
+     *
+     * @return array{0: string, 1: string}
+     */
+    public function serverAndSchool(array $account): array
+    {
+        $config = $this->load();
+        $server = $account['server'] ?? $config['server'] ?? null;
+        $school = $account['school'] ?? $config['school'] ?? null;
+
+        if (!\is_string($server) || '' === $server || !\is_string($school) || '' === $school) {
+            throw new UntisException(sprintf(
+                'Account "%s" has no server/school, and none is set at the top of the config either.',
+                (string) ($account['id'] ?? '?'),
+            ));
+        }
+
+        return [$server, $school];
     }
 
     /** @return list<array<string, mixed>> */

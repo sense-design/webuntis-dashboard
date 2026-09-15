@@ -40,7 +40,10 @@ cp config/untis.yaml.dist config/untis.yaml
 ```
 
 Edit `config/untis.yaml`: the server host, the school login name from the
-WebUntis URL, one account block per login, one student block per child.
+WebUntis URL, one account block per login, one student block per child. If
+your children are at different schools, set `server:`/`school:` on the
+account block itself instead of at the top of the file - each account
+already needs its own login, so this is the only extra step.
 
 Then set a real `APP_SECRET` in `.env.local` and make `var/` writable by the
 PHP-FPM user:
