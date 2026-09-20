@@ -143,4 +143,12 @@ for the app itself (bare metal, per `nginx.conf.example`, or the one-image
   cannot be a Twig template: no `t()`, no `locale`, no admin-saved `theme`
   override (only the system light/dark setting, via the same stylesheet).
   Styles for it live in `style.css` under "nginx error pages" like
-  everything else, not inline in the HTML file.
+  everything else, not inline in the HTML file. A server-wide `deny all;`
+  (the IP allowlist in `nginx.conf.example`) denies nginx's own internal
+  fetch of `/403.html` too unless something overrides it - without the
+  `location = /403.html { allow all; internal; }` block right next to
+  `error_page`, nginx silently falls back to its plain-text default instead
+  of the custom page, no error logged. The same `allow all;` is on the
+  `/assets/` and icon `location` blocks for the same reason: `403.html`
+  would otherwise render unstyled, since its own stylesheet and icon would
+  be denied too. Do not remove any of these three `allow all;`s.

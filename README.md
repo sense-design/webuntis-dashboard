@@ -123,6 +123,13 @@ no `t()` translations, so it is German+English in one rather than following
 `locale`, and it follows the system light/dark setting only (no admin-saved
 `theme` override, since nothing reads `untis.yaml` to render it).
 
+A server-wide `deny all` (the IP allowlist) also denies nginx's own attempt
+to fetch that page for the error response, and separately denies the
+stylesheet and icon it links to - both are already worked around in
+`nginx.conf.example`/`docker/nginx.conf` with a couple of `allow all;`
+overrides. Worth knowing if you write a custom `location` block of your own
+that also needs to stay reachable behind the allowlist.
+
 ### Docker
 
 `Dockerfile` builds one self-contained image - nginx and PHP-FPM in the same

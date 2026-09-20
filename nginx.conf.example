@@ -32,7 +32,16 @@ server {
     # allowlist and dotfile-block deny rules below (both return 403). It is
     # a static file nginx serves directly, so it renders even if PHP-FPM is
     # down.
+    #
+    # `deny all;` below is server-wide, so without this exact-match override
+    # nginx's attempt to actually fetch /403.html for the error response
+    # would itself get denied too - silently falling back to nginx's own
+    # plain-text 403 instead, which is exactly what this is meant to avoid.
     error_page 403 /403.html;
+    location = /403.html {
+        allow all;
+        internal;
+    }
 
     # Restrict access. Pick one, or combine both for defense in depth.
 
@@ -75,15 +84,21 @@ server {
     }
 
     # Static assets: let the browser cache them, they are versioned by name.
+    # Always reachable regardless of the access restriction above - there is
+    # nothing sensitive in here, and 403.html needs its stylesheet even when
+    # the visitor is denied everything else.
     location /assets/ {
+        allow all;
         expires 7d;
         access_log off;
         try_files $uri =404;
     }
 
     # Home screen / favicon images live at the document root. The manifest
-    # itself is served by the app (a localised route), not from here.
+    # itself is served by the app (a localised route), not from here. Always
+    # reachable, same reasoning as /assets/ above - 403.html links the icon.
     location ~* ^/(?:apple-touch-icon|icon(?:-\d+)?|favicon)\.(?:png|svg|ico)$ {
+        allow all;
         expires 30d;
         access_log off;
         try_files $uri =404;
