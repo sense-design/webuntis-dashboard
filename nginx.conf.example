@@ -28,6 +28,12 @@ server {
     ssl_certificate     /etc/letsencrypt/live/untis.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/untis.example.com/privkey.pem;
 
+    # A plain HTML page instead of nginx's stock error page, for the IP
+    # allowlist and dotfile-block deny rules below (both return 403). It is
+    # a static file nginx serves directly, so it renders even if PHP-FPM is
+    # down.
+    error_page 403 /403.html;
+
     # Restrict access. Pick one, or combine both for defense in depth.
 
     # -- Option 1: IP allowlist --------------------------------------------

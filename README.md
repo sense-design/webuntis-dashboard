@@ -116,6 +116,13 @@ query string (`App\Asset\MtimeVersionStrategy`). A deploy that touches
 of serving the old file for up to a week - no manual version bump, no build
 step.
 
+The IP allowlist and the dotfile block both `deny all`, which nginx answers
+with a 403; `public/403.html` replaces its stock error page with one in the
+app's own style. It is a plain static file nginx serves directly - no PHP,
+no `t()` translations, so it is German+English in one rather than following
+`locale`, and it follows the system light/dark setting only (no admin-saved
+`theme` override, since nothing reads `untis.yaml` to render it).
+
 ### Docker
 
 `Dockerfile` builds one self-contained image - nginx and PHP-FPM in the same
@@ -270,6 +277,7 @@ templates/admin.html.twig       The settings form
 templates/admin_subjects.html.twig      The hide_subjects form
 public/assets/style.css         The styles
 public/icon.svg                 Home screen / favicon source (PNGs generated from it)
+public/403.html                  Static error page for nginx's IP allowlist / dotfile-block denies
 Dockerfile                      Single image: nginx + PHP-FPM, composer install at build time
 docker/nginx.conf                       Container vhost, the plain-HTTP equivalent of nginx.conf.example
 docker/entrypoint.sh                    Fixes up var/ ownership, fails fast without config/untis.yaml

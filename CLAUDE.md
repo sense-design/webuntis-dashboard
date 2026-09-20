@@ -137,3 +137,10 @@ for the app itself (bare metal, per `nginx.conf.example`, or the one-image
   read. `fromCache` is set from inside the compute callback (`$hit = false`
   there), which Symfony only calls on a miss - do not try to derive hit/miss
   from the metadata itself, it is populated the same way either way.
+- `public/403.html` is wired up via `error_page 403 /403.html;` in both
+  nginx configs, for the IP allowlist and dotfile-block `deny all` rules.
+  It is served by nginx directly, before PHP-FPM is ever reached, so it
+  cannot be a Twig template: no `t()`, no `locale`, no admin-saved `theme`
+  override (only the system light/dark setting, via the same stylesheet).
+  Styles for it live in `style.css` under "nginx error pages" like
+  everything else, not inline in the HTML file.
