@@ -443,6 +443,46 @@ body {
     color: var(--alert);
 }
 
+/* nginx error pages (public/403.html) --------------------------------- */
+
+/* Plain static HTML that nginx serves directly, before PHP is ever
+   reached (a denied IP, a dotfile request), so it cannot use asset()'s
+   cache-busted URL or the admin-saved theme override - it only follows the
+   system light/dark setting. Reuses this stylesheet rather than its own
+   inline styles, so it stays visually in step with the rest of the app. */
+.error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 60vh;
+    text-align: center;
+}
+
+.error__code {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.error__title {
+    margin: 0;
+    font-size: clamp(1.5rem, 5vw, 2rem);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.error__hint {
+    margin: 0;
+    max-width: 26rem;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
 /* Header navigation --------------------------------------------------------- */
 
 .views {
