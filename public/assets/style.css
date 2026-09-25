@@ -430,6 +430,81 @@ body {
     white-space: pre-line;
 }
 
+/* Absences ----------------------------------------------------------------- */
+
+.absences {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.absence {
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--rule);
+}
+
+.absence:first-child {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.absence__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.absence__date {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.absence__excused {
+    flex: none;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.absence__excused--no {
+    color: var(--alert);
+}
+
+.absence__meta {
+    margin: 0.25rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.absence__meta span {
+    margin-right: 0.9rem;
+}
+
+.absence__meta span:last-child {
+    margin-right: 0;
+}
+
+.absence__text {
+    margin: 0.2rem 0 0;
+    font-size: 0.9375rem;
+    white-space: pre-line;
+}
+
+.absence__by {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--muted);
+}
+
+.absence__by span {
+    margin-right: 0.9rem;
+}
+
+.absence__by span:last-child {
+    margin-right: 0;
+}
+
 /* Messages ------------------------------------------------------------- */
 
 .empty,

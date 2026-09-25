@@ -215,6 +215,38 @@ final class UntisClient
     }
 
     /**
+     * Map of teacher short name (a WebUntis login/Kürzel, e.g. "BEE") to
+     * surname, harvested from the timetable over [$from, $to] the same way
+     * getSubjectNames() resolves subjects. Used to turn the raw usernames
+     * WebUntis' absences feed logs (who entered/excused an absence) into a
+     * readable name; getTeachers() would be the more direct source but many
+     * accounts are not granted that right, going by our own testing.
+     *
+     * @return array<string, string>
+     */
+    public function getTeacherNames(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        ?int $elementId = null,
+        ?int $elementType = null,
+    ): array {
+        [$elementId, $elementType] = $this->resolveElement($elementId, $elementType);
+
+        $names = [];
+        foreach ($this->timetableRows($from, $to, $elementId, $elementType) as $row) {
+            foreach ($row['te'] ?? [] as $teacher) {
+                $short = (string) ($teacher['name'] ?? '');
+                $long = (string) ($teacher['longname'] ?? '');
+                if ('' !== $short && '' !== $long) {
+                    $names[$short] = $long;
+                }
+            }
+        }
+
+        return $names;
+    }
+
+    /**
      * Every distinct subject name this element's timetable shows over
      * [$from, $to], sorted. Resolved exactly like getTimetable() resolves
      * each lesson's subject (longname, falling back to the short code when
@@ -398,6 +430,95 @@ final class UntisClient
         );
 
         return $exams;
+    }
+
+    /**
+     * The start and end date of the school year WebUntis currently has
+     * active for this school, as the school itself configured it - some
+     * start earlier or later than the common 1 August, so this is read
+     * rather than assumed.
+     *
+     * @return array{start: \DateTimeImmutable, end: \DateTimeImmutable}
+     */
+    public function getCurrentSchoolyear(): array
+    {
+        $result = $this->call('jsonrpc.do', [
+            'id' => 'webuntis-dashboard',
+            'method' => 'getCurrentSchoolyear',
+            'params' => new \stdClass(),
+            'jsonrpc' => '2.0',
+        ]);
+
+        return [
+            'start' => $this->parseDateStamp((int) ($result['startDate'] ?? 0)),
+            'end' => $this->parseDateStamp((int) ($result['endDate'] ?? 0)),
+        ];
+    }
+
+    /**
+     * Absences on record for the account's student, on or after $from and
+     * before $to, most recent first.
+     *
+     * Reads the mobile app's /api/classreg/absences/students endpoint
+     * (jsonrpc.do has no absences method). Unlike getHomework()/getExams(),
+     * WebUntis requires the student's own element id as a query parameter
+     * here rather than filtering the response client-side, so this resolves
+     * one via resolveElement() up front - a parent account with more than
+     * one child must pass $elementId explicitly, same as everywhere else.
+     * `createdUser`/`excuse.username` are WebUntis usernames (teacher
+     * initials, typically) rather than display names, so they are resolved
+     * through getTeacherNames() over the same [$from, $to] the same way
+     * getHomework()/getExams() resolve their subject codes; a username that
+     * is not a teacher (a school admin login, say) is left as-is since
+     * nothing in the timetable can resolve it.
+     *
+     * @return list<Absence>
+     */
+    public function getAbsences(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        ?int $elementId = null,
+        ?int $elementType = null,
+    ): array {
+        $teacherNames = $this->getTeacherNames($from, $to, $elementId, $elementType);
+        [$elementId] = $this->resolveElement($elementId, $elementType);
+
+        $body = $this->apiGet('api/classreg/absences/students', [
+            'startDate' => (int) $from->format('Ymd'),
+            'endDate' => (int) $to->format('Ymd'),
+            'studentId' => $elementId,
+            'excuseStatusId' => -1,
+        ]);
+
+        $absences = [];
+        foreach ($body['data']['absences'] ?? [] as $row) {
+            // The absence's own note is usually empty in practice; the
+            // excuse note (added when someone justifies it) tends to be
+            // where the actual text ends up, so it wins when both are set.
+            $text = trim((string) ($row['excuse']['text'] ?? ''));
+            if ('' === $text) {
+                $text = trim((string) ($row['text'] ?? ''));
+            }
+
+            $createdBy = trim((string) ($row['createdUser'] ?? ''));
+            $excusedBy = trim((string) ($row['excuse']['username'] ?? ''));
+
+            $absences[] = new Absence(
+                startDate: $this->parseDateStamp((int) ($row['startDate'] ?? 0)),
+                endDate: $this->parseDateStamp((int) ($row['endDate'] ?? 0)),
+                startTime: $this->formatTime((int) ($row['startTime'] ?? 0)),
+                endTime: $this->formatTime((int) ($row['endTime'] ?? 0)),
+                reason: trim((string) ($row['reason'] ?? '')),
+                text: $text,
+                excused: (bool) ($row['isExcused'] ?? false),
+                createdBy: $teacherNames[$createdBy] ?? $createdBy,
+                excusedBy: $teacherNames[$excusedBy] ?? $excusedBy,
+            );
+        }
+
+        usort($absences, static fn (Absence $a, Absence $b) => $b->startDate <=> $a->startDate);
+
+        return $absences;
     }
 
     // -- plumbing ---------------------------------------------------------
