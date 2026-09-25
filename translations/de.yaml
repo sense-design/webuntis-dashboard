@@ -25,6 +25,7 @@ lesson:
     cancelled: 'fällt aus'
     substitution: 'Vertretung'
     substitution_for: 'Vertretung für {teachers}'
+    room_change: 'Raumänderung, vorher {rooms}'
     free: 'Freistunde, nächste Stunde um {time}'
 
 homework:

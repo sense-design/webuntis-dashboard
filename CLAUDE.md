@@ -97,6 +97,25 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
 - The OTP login returns the session in a `Set-Cookie` header, not in the JSON
   body. The password login returns it in the body.
 - Times arrive as integers (`800` means 08:00), dates as `Ymd` integers.
+- A substituted teacher/room does not reliably come with `code: "irregular"`
+  on the period - some schools only set `orgname` on the substituted `te`/`ro`
+  entry (the original teacher/room short name) and leave `code` unset
+  entirely. `Lesson::isSubstituted()` treats a non-empty
+  `$replacedTeachers`/`$replacedRooms` as a change in its own right rather
+  than trusting `code` alone; `isChanged()` (used for the header's "N lessons
+  differ from the plan") is `isCancelled() || isSubstituted()`. Confirmed
+  live: this school never sends `code` for a substitution, only for
+  `cancelled`. Room and teacher changes can also happen independently or
+  together on the same period - the template renders one `lesson__flag` line
+  per kind that actually changed, not one combined guess. `orgname` (the
+  substituted-out teacher/room) is only ever a short code, never a longname
+  of its own - `getTimetable()` calls `hasSubstitution()` on the day's own
+  rows first, and only when that is true does it pay for a supplementary
+  `getTeacherNames()`/`getRoomNames()` lookup (a window centred on the
+  requested day, not "today", so a past/future day still resolves
+  correctly) to turn it into the same friendly name the timetable otherwise
+  shows, via `replacedNames()`'s `$nameMap` param. An ordinary day with no
+  substitution costs no extra request.
 - i18n is the hand-rolled `App\I18n\Translator`, not `symfony/translation`.
   Two YAML catalogues only (`en`, `de`); keep their keys in sync. Keys are dot
   paths into the tree. The language is app-wide from `locale` in `untis.yaml`

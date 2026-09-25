@@ -35,9 +35,22 @@ final class Lesson
         return 'cancelled' === $this->code;
     }
 
+    /**
+     * True for a teacher and/or room substitution. `code` alone is not
+     * enough: some schools never set it to `irregular` for a substitution,
+     * only `orgname` on the substituted teacher/room entry, so this also
+     * treats a non-empty $replacedTeachers/$replacedRooms as a change even
+     * without it.
+     */
+    public function isSubstituted(): bool
+    {
+        return !$this->isCancelled()
+            && ('irregular' === $this->code || [] !== $this->replacedTeachers || [] !== $this->replacedRooms);
+    }
+
     public function isChanged(): bool
     {
-        return \in_array($this->code, ['cancelled', 'irregular'], true);
+        return $this->isCancelled() || $this->isSubstituted();
     }
 
     public function teacherLine(): string

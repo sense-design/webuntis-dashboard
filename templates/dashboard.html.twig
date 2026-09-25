@@ -252,7 +252,7 @@
                                 <li class="gap">{{ t('lesson.free', {time: entry.until}) }}</li>
                             {% else %}
                                 {% set lesson = entry.lesson %}
-                                <li class="lesson{{ lesson.isCancelled ? ' lesson--cancelled' : '' }}{{ lesson.code == 'irregular' ? ' lesson--shifted' : '' }}">
+                                <li class="lesson{{ lesson.isCancelled ? ' lesson--cancelled' : '' }}{{ lesson.isSubstituted ? ' lesson--shifted' : '' }}">
                                     <div class="lesson__time">
                                         <span class="lesson__start">{{ lesson.start }}</span>
                                         <span class="lesson__end">{{ lesson.end }}</span>
@@ -271,14 +271,16 @@
 
                                         {% if lesson.isCancelled %}
                                             <p class="lesson__flag">{{ t('lesson.cancelled') }}</p>
-                                        {% elseif lesson.code == 'irregular' %}
-                                            <p class="lesson__flag">
-                                                {% if lesson.replacedTeachers is not empty %}
-                                                    {{ t('lesson.substitution_for', {teachers: lesson.replacedTeachers|join(', ')}) }}
-                                                {% else %}
-                                                    {{ t('lesson.substitution') }}
-                                                {% endif %}
-                                            </p>
+                                        {% elseif lesson.isSubstituted %}
+                                            {% if lesson.replacedTeachers is not empty %}
+                                                <p class="lesson__flag">{{ t('lesson.substitution_for', {teachers: lesson.replacedTeachers|join(', ')}) }}</p>
+                                            {% endif %}
+                                            {% if lesson.replacedRooms is not empty %}
+                                                <p class="lesson__flag">{{ t('lesson.room_change', {rooms: lesson.replacedRooms|join(', ')}) }}</p>
+                                            {% endif %}
+                                            {% if lesson.replacedTeachers is empty and lesson.replacedRooms is empty %}
+                                                <p class="lesson__flag">{{ t('lesson.substitution') }}</p>
+                                            {% endif %}
                                         {% endif %}
 
                                         {% for note in lesson.notes %}

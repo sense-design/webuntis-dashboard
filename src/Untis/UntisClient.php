@@ -166,6 +166,15 @@ final class UntisClient
     /**
      * Return the lessons of a single day, sorted by start time and merged.
      *
+     * A substituted period's `orgname` (the teacher/room it replaced) is
+     * only ever a short code, never a longname of its own - unlike the
+     * current teacher/room, which the row already carries a longname for -
+     * so when $day has any substitution at all, a supplementary
+     * getTeacherNames()/getRoomNames() lookup over a window centred on $day
+     * resolves it to the same friendly name the timetable otherwise shows.
+     * Skipped entirely on an ordinary day with no substitution, to spare
+     * WebUntis the extra request.
+     *
      * @return list<Lesson>
      */
     public function getTimetable(
@@ -175,13 +184,40 @@ final class UntisClient
     ): array {
         [$elementId, $elementType] = $this->resolveElement($elementId, $elementType);
 
+        $rows = $this->timetableRows($day, $day, $elementId, $elementType);
+
+        $teacherNames = [];
+        $roomNames = [];
+        if ($this->hasSubstitution($rows)) {
+            $from = $day->modify('-14 days');
+            $to = $day->modify('+14 days');
+            $teacherNames = $this->getTeacherNames($from, $to, $elementId, $elementType);
+            $roomNames = $this->getRoomNames($from, $to, $elementId, $elementType);
+        }
+
         $lessons = array_map(
-            $this->toLesson(...),
-            $this->timetableRows($day, $day, $elementId, $elementType),
+            fn (array $row): Lesson => $this->toLesson($row, $teacherNames, $roomNames),
+            $rows,
         );
         usort($lessons, static fn (Lesson $a, Lesson $b) => $a->start <=> $b->start);
 
         return $this->mergeAdjacent($lessons);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    private function hasSubstitution(array $rows): bool
+    {
+        foreach ($rows as $row) {
+            foreach ([...($row['te'] ?? []), ...($row['ro'] ?? [])] as $entry) {
+                if ('' !== (string) ($entry['orgname'] ?? '')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -237,6 +273,37 @@ final class UntisClient
             foreach ($row['te'] ?? [] as $teacher) {
                 $short = (string) ($teacher['name'] ?? '');
                 $long = (string) ($teacher['longname'] ?? '');
+                if ('' !== $short && '' !== $long) {
+                    $names[$short] = $long;
+                }
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Map of room short name (e.g. "S 1.4") to its longname (e.g.
+     * "Biologie"), harvested from the timetable over [$from, $to] the same
+     * way getTeacherNames() resolves teachers. Used to turn the short room
+     * code a substitution's `orgname` carries into the same friendly name
+     * the timetable otherwise shows.
+     *
+     * @return array<string, string>
+     */
+    public function getRoomNames(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        ?int $elementId = null,
+        ?int $elementType = null,
+    ): array {
+        [$elementId, $elementType] = $this->resolveElement($elementId, $elementType);
+
+        $names = [];
+        foreach ($this->timetableRows($from, $to, $elementId, $elementType) as $row) {
+            foreach ($row['ro'] ?? [] as $room) {
+                $short = (string) ($room['name'] ?? '');
+                $long = (string) ($room['longname'] ?? '');
                 if ('' !== $short && '' !== $long) {
                     $names[$short] = $long;
                 }
@@ -712,9 +779,11 @@ final class UntisClient
     }
 
     /**
-     * @param array<string, mixed> $row
+     * @param array<string, mixed>  $row
+     * @param array<string, string> $teacherNames
+     * @param array<string, string> $roomNames
      */
-    private function toLesson(array $row): Lesson
+    private function toLesson(array $row, array $teacherNames = [], array $roomNames = []): Lesson
     {
         $subjects = $this->names($row['su'] ?? []);
         $notes = array_values(array_filter([
@@ -729,8 +798,8 @@ final class UntisClient
             subject: $subjects[0] ?? (string) ($row['activityType'] ?? 'Unterricht'),
             teachers: $this->names($row['te'] ?? []),
             rooms: $this->names($row['ro'] ?? []),
-            replacedTeachers: $this->replacedNames($row['te'] ?? []),
-            replacedRooms: $this->replacedNames($row['ro'] ?? []),
+            replacedTeachers: $this->replacedNames($row['te'] ?? [], $teacherNames),
+            replacedRooms: $this->replacedNames($row['ro'] ?? [], $roomNames),
             code: isset($row['code']) ? (string) $row['code'] : null,
             notes: $notes,
         );
@@ -755,19 +824,25 @@ final class UntisClient
     }
 
     /**
-     * Original teacher or room of a substituted period, when WebUntis reports it.
+     * Original teacher or room of a substituted period, when WebUntis
+     * reports it - resolved to its longname via $nameMap (see
+     * getTimetable()) since `orgname` is only ever the short code, falling
+     * back to that short code when the map has nothing for it (a substitute
+     * teacher/room this student's own timetable never otherwise shows, so
+     * the harvest window never picked it up).
      *
      * @param array<int, array<string, mixed>> $entries
+     * @param array<string, string>            $nameMap
      *
      * @return list<string>
      */
-    private function replacedNames(array $entries): array
+    private function replacedNames(array $entries, array $nameMap = []): array
     {
         $out = [];
         foreach ($entries as $entry) {
             $original = (string) ($entry['orgname'] ?? '');
             if ('' !== $original) {
-                $out[] = $original;
+                $out[] = $nameMap[$original] ?? $original;
             }
         }
 
