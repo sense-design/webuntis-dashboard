@@ -249,16 +249,19 @@
                     <ol class="lessons">
                         {% for entry in student.entries %}
                             {% if entry.type == 'gap' %}
-                                <li class="gap">{{ t('lesson.free', {time: entry.until}) }}</li>
+                                <li class="gap{{ entry.current ? ' gap--now' : '' }}">{{ t('lesson.free', {time: entry.until}) }}</li>
                             {% else %}
                                 {% set lesson = entry.lesson %}
-                                <li class="lesson{{ lesson.isCancelled ? ' lesson--cancelled' : '' }}{{ lesson.isSubstituted ? ' lesson--shifted' : '' }}">
+                                <li class="lesson{{ lesson.isCancelled ? ' lesson--cancelled' : '' }}{{ lesson.isSubstituted ? ' lesson--shifted' : '' }}{{ entry.current ? ' lesson--now' : '' }}">
                                     <div class="lesson__time">
                                         <span class="lesson__start">{{ lesson.start }}</span>
                                         <span class="lesson__end">{{ lesson.end }}</span>
                                     </div>
                                     <div class="lesson__body">
-                                        <h3 class="lesson__subject">{{ lesson.subject }}</h3>
+                                        <h3 class="lesson__subject">
+                                            {{ lesson.subject }}
+                                            {% if entry.current %}<span class="lesson__now">{{ t('lesson.now') }}</span>{% endif %}
+                                        </h3>
 
                                         <p class="lesson__meta">
                                             {% if lesson.teachers is not empty %}

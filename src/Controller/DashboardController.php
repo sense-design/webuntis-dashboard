@@ -58,12 +58,16 @@ final class DashboardController extends AbstractController
             }
         }
 
+        $isToday = $day->format('Y-m-d') === (new \DateTimeImmutable('today', $timezone))->format('Y-m-d');
+        $now = $isToday ? (new \DateTimeImmutable('now', $timezone))->format('H:i') : null;
+
         [$students, $cacheInfo] = $this->provider->fetchDay($day);
         foreach ($students as $index => $student) {
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
             $students[$index]['entries'] = $this->withFreePeriods(
                 $student['lessons'],
                 $this->config->freePeriodsEnabled(),
+                $now,
             );
         }
 
@@ -84,7 +88,7 @@ final class DashboardController extends AbstractController
             'view' => 'timetable',
             'students' => $students,
             'day_label' => $this->formatDay($day),
-            'is_today' => $day->format('Y-m-d') === (new \DateTimeImmutable('today', $timezone))->format('Y-m-d'),
+            'is_today' => $isToday,
             'previous_day' => ['day' => $previous->format('Y-m-d'), 'label' => $this->formatDayShort($previous)],
             'next_day' => ['day' => $next->format('Y-m-d'), 'label' => $this->formatDayShort($next)],
             'changes' => $changes,
@@ -400,21 +404,43 @@ final class DashboardController extends AbstractController
      * the `features.free_periods` config key, this just wraps the lessons
      * without looking for gaps.
      *
+     * Each entry also carries whether it is the one happening right now
+     * ($now, "H:i"), so the template can mark it - null when the day being
+     * shown is not today, since "now" has no meaning on another day. This
+     * only ever reflects the moment the page was rendered: the app has no
+     * client-side script to tick it forward, just the existing
+     * refresh_seconds auto-reload.
+     *
      * @param list<Lesson> $lessons
      *
-     * @return list<array{type: string, lesson: ?Lesson, until: ?string}>
+     * @return list<array{type: string, lesson: ?Lesson, until: ?string, current: bool}>
      */
-    private function withFreePeriods(array $lessons, bool $enabled): array
+    private function withFreePeriods(array $lessons, bool $enabled, ?string $now): array
     {
+        $nowMinutes = null !== $now ? $this->toMinutes($now) : null;
+
         $entries = [];
         foreach ($lessons as $index => $lesson) {
             if ($enabled && $index > 0) {
-                $gap = $this->toMinutes($lesson->start) - $this->toMinutes($lessons[$index - 1]->end);
-                if ($gap >= self::FREE_PERIOD_MINUTES) {
-                    $entries[] = ['type' => 'gap', 'lesson' => null, 'until' => $lesson->start];
+                $gapStart = $this->toMinutes($lessons[$index - 1]->end);
+                $gapEnd = $this->toMinutes($lesson->start);
+                if ($gapEnd - $gapStart >= self::FREE_PERIOD_MINUTES) {
+                    $entries[] = [
+                        'type' => 'gap',
+                        'lesson' => null,
+                        'until' => $lesson->start,
+                        'current' => null !== $nowMinutes && $nowMinutes >= $gapStart && $nowMinutes < $gapEnd,
+                    ];
                 }
             }
-            $entries[] = ['type' => 'lesson', 'lesson' => $lesson, 'until' => null];
+            $entries[] = [
+                'type' => 'lesson',
+                'lesson' => $lesson,
+                'until' => null,
+                'current' => null !== $nowMinutes
+                    && $nowMinutes >= $this->toMinutes($lesson->start)
+                    && $nowMinutes < $this->toMinutes($lesson->end),
+            ];
         }
 
         return $entries;

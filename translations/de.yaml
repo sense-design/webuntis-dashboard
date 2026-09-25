@@ -26,6 +26,7 @@ lesson:
     substitution: 'Vertretung'
     substitution_for: 'Vertretung für {teachers}'
     room_change: 'Raumänderung, vorher {rooms}'
+    now: 'Jetzt'
     free: 'Freistunde, nächste Stunde um {time}'
 
 homework:

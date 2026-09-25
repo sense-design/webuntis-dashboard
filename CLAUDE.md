@@ -116,6 +116,15 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   correctly) to turn it into the same friendly name the timetable otherwise
   shows, via `replacedNames()`'s `$nameMap` param. An ordinary day with no
   substitution costs no extra request.
+- The "current lesson" marker (`entry.current`, set in
+  `DashboardController::withFreePeriods()`) is computed once at render time
+  from `$now` (only non-null when `$isToday`, since "now" means nothing on
+  another day) and never ticks forward client-side - the app has no
+  JavaScript anywhere, so it only ever moves when the page reloads, the same
+  way `updated_at`/`from_cache` in the footer only move on a fetch. A gap
+  entry only exists at all when it is at least `FREE_PERIOD_MINUTES` long, so
+  ordinary passing time between two periods shows no marker either way - not
+  a bug, there is no entry to mark it on.
 - i18n is the hand-rolled `App\I18n\Translator`, not `symfony/translation`.
   Two YAML catalogues only (`en`, `de`); keep their keys in sync. Keys are dot
   paths into the tree. The language is app-wide from `locale` in `untis.yaml`

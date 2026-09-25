@@ -26,6 +26,7 @@ lesson:
     substitution: 'Substitution'
     substitution_for: 'Substitution for {teachers}'
     room_change: 'Room changed, was {rooms}'
+    now: 'Now'
     free: 'Free period, next lesson at {time}'
 
 homework:
