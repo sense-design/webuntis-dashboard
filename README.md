@@ -106,10 +106,10 @@ mounted read-only (Docker).
 
 ### Bare metal
 
-`nginx.conf.example` is a complete vhost. Document root is `public/`, everything
-routes through `index.php`, and PHP-FPM is the only moving part.
+`docs/nginx.conf.example` is a complete vhost. Document root is `public/`,
+everything routes through `index.php`, and PHP-FPM is the only moving part.
 
-`nginx.conf.example` caches everything under `/assets/` for 7 days, so
+`docs/nginx.conf.example` caches everything under `/assets/` for 7 days, so
 `{{ asset(...) }}` in the templates appends each file's own mtime as a `?v=`
 query string (`App\Asset\MtimeVersionStrategy`). A deploy that touches
 `style.css` changes that URL, so the browser fetches it immediately instead
@@ -126,7 +126,7 @@ no `t()` translations, so it is German+English in one rather than following
 A server-wide `deny all` (the IP allowlist) also denies nginx's own attempt
 to fetch that page for the error response, and separately denies the
 stylesheet and icon it links to - both are already worked around in
-`nginx.conf.example`/`docker/nginx.conf` with a couple of `allow all;`
+`docs/nginx.conf.example`/`docker/nginx.conf` with a couple of `allow all;`
 overrides. Worth knowing if you write a custom `location` block of your own
 that also needs to stay reachable behind the allowlist.
 
@@ -178,13 +178,14 @@ error instead of a confusing 500 on every request.
 | `theme` | `system` | `system`, `light` or `dark` |
 | `features.homework` | `true` | Homework view and its header tab |
 | `features.exams` | `true` | Exams view and its header tab |
+| `features.absences` | `true` | Absences view and its header tab |
 | `features.free_periods` | `true` | Free-period markers in the timetable |
 
 Every feature defaults to on; set the ones you don't want under `features:` in
 `config/untis.yaml` (see `untis.yaml.dist`), or flip them from `/admin` (see
-above). A disabled `/homework` or `/exams` 404s rather than rendering empty,
-the same way `/setup` does without its token, and the header only shows tabs
-for the views that are enabled.
+above). A disabled `/homework`, `/exams` or `/absences` 404s rather than
+rendering empty, the same way `/setup` does without its token, and the header
+only shows tabs for the views that are enabled.
 
 `?day=tomorrow` or `?day=2026-09-14` shows another day. The header has a pager
 to the previous and next school day; Saturdays and Sundays are stepped over.
@@ -211,8 +212,16 @@ file automatically.
 days, sorted by date, read from the mobile app's `/WebUntis/api/exams`
 endpoint. That endpoint filters by class rather than by student, so each
 exam's assigned-student list is checked instead, and subjects are resolved to
-long names the same way homework's are. All three views are linked from the
-header.
+long names the same way homework's are.
+
+`/absences` switches to the absences list: every student's absences over the
+current school year to date (and up to 14 days ahead, for an already-planned
+absence like a doctor's appointment), most recent first, read from the mobile
+app's `/WebUntis/api/classreg/absences/students` endpoint, including the
+reason, any excuse note and whether it has been excused yet. The school year's
+own start and end dates come from WebUntis itself
+(`getCurrentSchoolyear`), not an assumed calendar date, since not every school
+starts on 1 August. All four views are linked from the header.
 
 The UI ships in English and German, set app-wide by `locale`. Strings live in
 `translations/en.yaml` and `translations/de.yaml`.
@@ -273,8 +282,9 @@ src/Untis/Lesson.php            One timetable block
 src/Untis/Homework.php          One outstanding homework assignment
 src/Untis/HomeworkTracker.php   Local "done" marks, layered over Homework, never synced to WebUntis
 src/Untis/Exam.php              One upcoming exam
+src/Untis/Absence.php           One absence entry, past or ongoing
 src/Asset/MtimeVersionStrategy.php      asset() cache-busting, keyed by file mtime
-src/Controller/DashboardController.php  Dashboard, homework, exams, manifest, /setup helper
+src/Controller/DashboardController.php  Dashboard, homework, exams, absences, manifest, /setup helper
 src/Controller/AdminController.php      /admin settings form and /admin/subjects, reads and saves via ConfigLoader
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function
@@ -286,7 +296,7 @@ public/assets/style.css         The styles
 public/icon.svg                 Home screen / favicon source (PNGs generated from it)
 public/403.html                  Static error page for nginx's IP allowlist / dotfile-block denies
 Dockerfile                      Single image: nginx + PHP-FPM, composer install at build time
-docker/nginx.conf                       Container vhost, the plain-HTTP equivalent of nginx.conf.example
+docker/nginx.conf                       Container vhost, the plain-HTTP equivalent of docs/nginx.conf.example
 docker/entrypoint.sh                    Fixes up var/ ownership, fails fast without config/untis.yaml
 docker-compose.yml               Volumes + env_file wrapper around the image
 ```

@@ -61,6 +61,21 @@ final class TimetableProvider
     }
 
     /**
+     * Absences on record for every configured student over the current
+     * school year to date, most recent first. Not tied to a day: WebUntis is
+     * asked for a window starting at the school year's own start date (see
+     * UntisClient::getCurrentSchoolyear()) and reaching 14 days into the
+     * future for any already-planned absence (e.g. a doctor's appointment
+     * entered ahead of time), capped at the school year's end.
+     *
+     * @return array{0: list<array{name: string, absences: list<Absence>, error: ?string}>, 1: CacheInfo}
+     */
+    public function fetchAbsences(): array
+    {
+        return $this->cachedGet('webuntis_dashboard.absences', fn () => $this->fetchAbsencesUncached());
+    }
+
+    /**
      * Wraps CacheInterface::get() so every cached fetch also reports how it
      * was served: fetched fresh just now, or from an earlier fetch still
      * within cache_ttl - shown in the footer so "why hasn't this changed
@@ -308,6 +323,59 @@ final class TimetableProvider
                     );
                 } catch (UntisException $exception) {
                     $this->logger->warning('WebUntis exams lookup failed for {student}: {message}', [
+                        'student' => $student['name'],
+                        'message' => $exception->getMessage(),
+                    ]);
+                    $entry['error'] = $exception->getMessage();
+                }
+
+                $results[] = $entry;
+            }
+        } finally {
+            foreach ($sessions as $session) {
+                $session->logout();
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * @return list<array{name: string, absences: list<Absence>, error: ?string}>
+     */
+    private function fetchAbsencesUncached(): array
+    {
+        $today = new \DateTimeImmutable('today', $this->config->timezone());
+        $lookahead = $today->modify('+14 days');
+
+        /** @var array<string, UntisClient> $sessions */
+        $sessions = [];
+        /** @var array<string, array{start: \DateTimeImmutable, end: \DateTimeImmutable}> $schoolyears */
+        $schoolyears = [];
+        $results = [];
+
+        try {
+            foreach ($this->config->students() as $student) {
+                $entry = ['name' => $student['name'], 'absences' => [], 'error' => null];
+
+                try {
+                    $accountId = $student['account'];
+                    $sessions[$accountId] ??= $this->connect($accountId);
+                    $schoolyears[$accountId] ??= $sessions[$accountId]->getCurrentSchoolyear();
+
+                    // Bounded to the school's own current school year, not a
+                    // fixed rolling window - the end is still capped at
+                    // school-year end even though a near-future planned
+                    // absence (e.g. a doctor's appointment entered ahead of
+                    // time) is looked for up to 14 days out.
+                    $entry['absences'] = $sessions[$accountId]->getAbsences(
+                        $schoolyears[$accountId]['start'],
+                        min($lookahead, $schoolyears[$accountId]['end']),
+                        isset($student['element_id']) ? (int) $student['element_id'] : null,
+                        isset($student['element_type']) ? (int) $student['element_type'] : null,
+                    );
+                } catch (UntisException $exception) {
+                    $this->logger->warning('WebUntis absences lookup failed for {student}: {message}', [
                         'student' => $student['name'],
                         'message' => $exception->getMessage(),
                     ]);

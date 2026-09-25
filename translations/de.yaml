@@ -43,6 +43,15 @@ exams:
     none: 'Keine bevorstehenden Prüfungen.'
     on: 'am {date}'
 
+absences:
+    title: 'Fehlzeiten'
+    none: 'Keine Fehlzeiten erfasst.'
+    range: '{from} – {to}'
+    excused: 'Entschuldigt'
+    unexcused: 'Unentschuldigt'
+    entered_by: 'Eingetragen von {user}'
+    excused_by: 'Entschuldigt von {user}'
+
 admin:
     title: 'Einstellungen'
     back: 'Zurück zum Dashboard'
@@ -62,6 +71,7 @@ admin:
     feature_homework: 'Hausaufgaben'
     feature_exams: 'Prüfungen'
     feature_free_periods: 'Freistunden-Markierungen'
+    feature_absences: 'Fehlzeiten'
     hide_subjects: 'Fächer ausblenden'
     hide_subjects_hint: 'Fächer, die WebUntis für dieses Kind in den nächsten zwei Wochen listet. Die ankreuzen, die nicht im Dashboard auftauchen sollen, z.B. ein paralleler Kurs im Jahrgang, den dieses Kind nicht besucht.'
     hide_subjects_none: 'Noch keine Fächer gefunden.'
@@ -72,6 +82,7 @@ nav:
     timetable: 'Stundenplan'
     homework: 'Hausaufgaben'
     exams: 'Prüfungen'
+    absences: 'Fehlzeiten'
 
 header:
     pager: 'Tag wechseln'

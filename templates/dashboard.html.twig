@@ -11,6 +11,8 @@
             {{ t('homework.done_title') }}
         {%- elseif view == 'exams' -%}
             {{ t('exams.title') }}
+        {%- elseif view == 'absences' -%}
+            {{ t('absences.title') }}
         {%- else -%}
             {{ t('title', {day: day_label}) }}
         {%- endif -%}
@@ -45,13 +47,15 @@
                 {{ t('homework.done_title') }}
             {%- elseif view == 'exams' -%}
                 {{ t('exams.title') }}
+            {%- elseif view == 'absences' -%}
+                {{ t('absences.title') }}
             {%- else -%}
                 {{ day_label }}
             {%- endif -%}
         </h1>
 
-        {% if homework_enabled or exams_enabled %}
-            <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}">
+        {% if homework_enabled or exams_enabled or absences_enabled %}
+            <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}{{ absences_enabled ? ' / ' ~ t('nav.absences') : '' }}">
                 <a class="views__link{{ view == 'timetable' ? ' views__link--active' : '' }}"
                    href="{{ path('dashboard') }}"
                    {%- if view == 'timetable' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
@@ -64,6 +68,11 @@
                     <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
                        href="{{ path('exams') }}"
                        {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
+                {% endif %}
+                {% if absences_enabled %}
+                    <a class="views__link{{ view == 'absences' ? ' views__link--active' : '' }}"
+                       href="{{ path('absences') }}"
+                       {%- if view == 'absences' %} aria-current="page"{% endif %}>{{ t('nav.absences') }}</a>
                 {% endif %}
             </nav>
         {% endif %}
@@ -187,6 +196,48 @@
                                     </p>
                                     {% if exam.text %}
                                         <p class="exam__text">{{ exam.text }}</p>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% endif %}
+                {% elseif view == 'absences' %}
+                    {% if student.absences is empty %}
+                        <p class="empty">{{ t('absences.none') }}</p>
+                    {% else %}
+                        <ol class="absences">
+                            {% for absence in student.absences %}
+                                <li class="absence">
+                                    <div class="absence__head">
+                                        <span class="absence__date">
+                                            {% if absence.same_day %}
+                                                {{ absence.start_date }}
+                                            {% else %}
+                                                {{ t('absences.range', {from: absence.start_date, to: absence.end_date}) }}
+                                            {% endif %}
+                                        </span>
+                                        <span class="absence__excused{{ absence.excused ? '' : ' absence__excused--no' }}">
+                                            {{ absence.excused ? t('absences.excused') : t('absences.unexcused') }}
+                                        </span>
+                                    </div>
+                                    <p class="absence__meta">
+                                        <span>{{ absence.start_time }}–{{ absence.end_time }}</span>
+                                        {% if absence.reason %}
+                                            <span>{{ absence.reason }}</span>
+                                        {% endif %}
+                                    </p>
+                                    {% if absence.text %}
+                                        <p class="absence__text">{{ absence.text }}</p>
+                                    {% endif %}
+                                    {% if absence.created_by or absence.excused_by %}
+                                        <p class="absence__by">
+                                            {% if absence.created_by %}
+                                                <span>{{ t('absences.entered_by', {user: absence.created_by}) }}</span>
+                                            {% endif %}
+                                            {% if absence.excused_by %}
+                                                <span>{{ t('absences.excused_by', {user: absence.excused_by}) }}</span>
+                                            {% endif %}
+                                        </p>
                                     {% endif %}
                                 </li>
                             {% endfor %}

@@ -43,6 +43,15 @@ exams:
     none: 'No upcoming exams.'
     on: 'on {date}'
 
+absences:
+    title: 'Absences'
+    none: 'No absences on record.'
+    range: '{from} – {to}'
+    excused: 'Excused'
+    unexcused: 'Unexcused'
+    entered_by: 'Entered by {user}'
+    excused_by: 'Excused by {user}'
+
 admin:
     title: 'Settings'
     back: 'Back to dashboard'
@@ -62,6 +71,7 @@ admin:
     feature_homework: 'Homework'
     feature_exams: 'Exams'
     feature_free_periods: 'Free-period markers'
+    feature_absences: 'Absences'
     hide_subjects: 'Hide subjects'
     hide_subjects_hint: 'Subjects WebUntis lists for this student over the next two weeks. Check the ones that should not show up on the dashboard, e.g. a parallel year-group course this student does not attend.'
     hide_subjects_none: 'No subjects found yet.'
@@ -72,6 +82,7 @@ nav:
     timetable: 'Timetable'
     homework: 'Homework'
     exams: 'Exams'
+    absences: 'Absences'
 
 header:
     pager: 'Change day'

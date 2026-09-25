@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\I18n\Translator;
+use App\Untis\Absence;
 use App\Untis\CacheInfo;
 use App\Untis\ConfigLoader;
 use App\Untis\Exam;
@@ -92,6 +93,7 @@ final class DashboardController extends AbstractController
             ...$this->cacheStatus($cacheInfo, $timezone),
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => $this->config->examsEnabled(),
+            'absences_enabled' => $this->config->absencesEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
     }
@@ -138,6 +140,7 @@ final class DashboardController extends AbstractController
             ...$this->cacheStatus($cacheInfo, $timezone),
             'homework_enabled' => true,
             'exams_enabled' => $this->config->examsEnabled(),
+            'absences_enabled' => $this->config->absencesEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
     }
@@ -182,6 +185,7 @@ final class DashboardController extends AbstractController
             ...$this->cacheStatus($cacheInfo, $timezone),
             'homework_enabled' => true,
             'exams_enabled' => $this->config->examsEnabled(),
+            'absences_enabled' => $this->config->absencesEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
     }
@@ -260,6 +264,58 @@ final class DashboardController extends AbstractController
             ...$this->cacheStatus($cacheInfo, $timezone),
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => true,
+            'absences_enabled' => $this->config->absencesEnabled(),
+            'admin_token' => $this->adminToken(),
+        ]);
+    }
+
+    /**
+     * The absences view: every student's absences on record, most recent
+     * first. Like exams and homework, it is not day-scoped, so it has no day
+     * pager.
+     *
+     * Guarded by the `features.absences` config key; disabled, the route
+     * behaves as if it did not exist, same as `/setup` without its token.
+     */
+    #[Route('/absences', name: 'absences', methods: ['GET'])]
+    public function absences(): Response
+    {
+        if (!$this->config->absencesEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
+        $timezone = $this->config->timezone();
+
+        [$students, $cacheInfo] = $this->provider->fetchAbsences();
+        foreach ($students as $index => $student) {
+            $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+            $students[$index]['absences'] = array_map(
+                fn (Absence $absence): array => [
+                    'start_date' => $this->formatDayCompact($absence->startDate),
+                    'end_date' => $this->formatDayCompact($absence->endDate),
+                    'same_day' => $absence->startDate->format('Y-m-d') === $absence->endDate->format('Y-m-d'),
+                    'start_time' => $absence->startTime,
+                    'end_time' => $absence->endTime,
+                    'reason' => $absence->reason,
+                    'text' => $absence->text,
+                    'excused' => $absence->excused,
+                    'created_by' => $absence->createdBy,
+                    'excused_by' => $absence->excusedBy,
+                ],
+                $student['absences'],
+            );
+        }
+
+        return $this->render('dashboard.html.twig', [
+            'view' => 'absences',
+            'students' => $students,
+            'is_today' => true,
+            'refresh_seconds' => $this->config->refreshSeconds(),
+            'theme' => $this->config->theme(),
+            ...$this->cacheStatus($cacheInfo, $timezone),
+            'homework_enabled' => $this->config->homeworkEnabled(),
+            'exams_enabled' => $this->config->examsEnabled(),
+            'absences_enabled' => true,
             'admin_token' => $this->adminToken(),
         ]);
     }

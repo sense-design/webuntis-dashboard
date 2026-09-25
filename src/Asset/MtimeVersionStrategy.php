@@ -8,7 +8,7 @@ use Symfony\Component\Asset\VersionStrategy\VersionStrategyInterface;
 
 /**
  * Appends each asset file's own mtime as a `?v=` cache-buster, so
- * `nginx.conf.example`'s 7-day `expires` on /assets/ can stay aggressive
+ * `docs/nginx.conf.example`'s 7-day `expires` on /assets/ can stay aggressive
  * while a deploy still invalidates the browser cache immediately - no
  * manual version bump, no build step, no asset manifest.
  */

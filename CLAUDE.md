@@ -2,7 +2,7 @@
 
 Standalone Symfony 7 app that renders one day of WebUntis timetable data for
 several students. Runs on nginx + PHP-FPM only; no database, no build step
-for the app itself (bare metal, per `nginx.conf.example`, or the one-image
+for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
 `Dockerfile` - same nginx + PHP-FPM, just both in one container).
 
 ## Rules
@@ -31,11 +31,12 @@ for the app itself (bare metal, per `nginx.conf.example`, or the one-image
   on purpose: once gated by that media query for the system-follows case,
   once under `:root[data-theme="dark"]` for the pinned case — keep both in
   sync when a token's dark value changes.
-- Optional features (homework, exams, free-period markers) are on by default
-  and switched off individually via `features.<name>` in `untis.yaml`, or
-  from `/admin`, read through `ConfigLoader::<name>Enabled()`. A disabled
-  view route 404s (see `DashboardController::homework()`/`exams()`) rather
-  than rendering empty; a disabled display-only feature (free periods) just
+- Optional features (homework, exams, absences, free-period markers) are on
+  by default and switched off individually via `features.<name>` in
+  `untis.yaml`, or from `/admin`, read through `ConfigLoader::<name>Enabled()`.
+  A disabled view route 404s (see
+  `DashboardController::homework()`/`exams()`/`absences()`) rather than
+  rendering empty; a disabled display-only feature (free periods) just
   renders without it. A new optional feature should follow the same shape.
 - `config/untis.yaml` is never written to by the app, only read. Anything a
   user should be able to change at runtime (`/admin`) is layered on top of it
@@ -103,7 +104,7 @@ for the app itself (bare metal, per `nginx.conf.example`, or the one-image
 - Static files are always reached through `{{ asset(...) }}`, never a literal
   `/assets/...` path, so `App\Asset\MtimeVersionStrategy` (wired in
   `config/packages/framework.yaml`) can append each file's own mtime as a
-  `?v=` cache-buster. That is what lets `nginx.conf.example` cache
+  `?v=` cache-buster. That is what lets `docs/nginx.conf.example` cache
   `/assets/` hard without a deploy leaving the browser stuck on a stale
   `style.css`.
 - The `<link rel="manifest">` tag carries `crossorigin="use-credentials"`. Web
@@ -137,6 +138,28 @@ for the app itself (bare metal, per `nginx.conf.example`, or the one-image
   read. `fromCache` is set from inside the compute callback (`$hit = false`
   there), which Symfony only calls on a miss - do not try to derive hit/miss
   from the metadata itself, it is populated the same way either way.
+- `/WebUntis/api/classreg/absences/students` requires the student's own
+  `studentId` as a query parameter, unlike `/api/homeworks/lessons` and
+  `/api/exams` which fetch broadly and filter the response client-side - so
+  `getAbsences()` calls `resolveElement()` up front rather than matching
+  each row against `$elementId` afterwards. Its fetch window is bounded by
+  `UntisClient::getCurrentSchoolyear()` (the jsonrpc.do method of that name),
+  not a fixed rolling window - the school's own configured start/end dates,
+  since not every school starts its year on 1 August, and `TimetableProvider`
+  caches one lookup per account per fetch rather than per student, since it
+  is a school-wide fact, not a per-student one. Tested live against our own
+  school's account, this endpoint did not hit the `403 Unerlaubter Zugriff`
+  wall that exams does; if another school's account does get denied here,
+  it is the same kind of per-module WebUntis permission, not a bug.
+  `Absence::$createdBy`/`$excusedBy` (who logged/excused it) start out as the
+  row's `createdUser`/`excuse.username` - raw WebUntis login names (teacher
+  initials, typically), not display names - and are resolved to a surname via
+  `getTeacherNames()`, the same short-name-to-longname harvest from the
+  timetable that `getSubjectNames()` does for subjects (`getTeachers()`
+  itself is not used: our own account has no right to call it, going by
+  `-8509: no right for getTeachers()` from live testing). A username that is
+  not a teacher (a school admin login, say) has no timetable entry to
+  resolve from and is left exactly as WebUntis returned it.
 - `public/403.html` is wired up via `error_page 403 /403.html;` in both
   nginx configs, for the IP allowlist and dotfile-block `deny all` rules.
   It is served by nginx directly, before PHP-FPM is ever reached, so it
@@ -144,7 +167,7 @@ for the app itself (bare metal, per `nginx.conf.example`, or the one-image
   override (only the system light/dark setting, via the same stylesheet).
   Styles for it live in `style.css` under "nginx error pages" like
   everything else, not inline in the HTML file. A server-wide `deny all;`
-  (the IP allowlist in `nginx.conf.example`) denies nginx's own internal
+  (the IP allowlist in `docs/nginx.conf.example`) denies nginx's own internal
   fetch of `/403.html` too unless something overrides it - without the
   `location = /403.html { allow all; internal; }` block right next to
   `error_page`, nginx silently falls back to its plain-text default instead
