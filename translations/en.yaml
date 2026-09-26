@@ -48,11 +48,17 @@ exams:
 absences:
     title: 'Absences'
     none: 'No absences on record.'
+    summary: '{excused} excused, {unexcused} unexcused'
     range: '{from} – {to}'
     excused: 'Excused'
     unexcused: 'Unexcused'
     entered_by: 'Entered by {user}'
     excused_by: 'Excused by {user}'
+
+week:
+    title: 'Week overview'
+    empty: 'No lessons.'
+    pager: 'Week {number}'
 
 admin:
     title: 'Settings'
@@ -82,6 +88,8 @@ admin:
 
 nav:
     timetable: 'Timetable'
+    day: 'Day'
+    week: 'Week'
     homework: 'Homework'
     exams: 'Exams'
     absences: 'Absences'
@@ -93,6 +101,7 @@ footer:
     updated: 'Fetched at {time}'
     cached: 'cached, {minutes} min left'
     today: 'Back to today'
+    this_week: 'Back to this week'
     admin: 'Settings'
     tagline: 'Built with {heart} for open source'
     source: 'Source on GitHub'

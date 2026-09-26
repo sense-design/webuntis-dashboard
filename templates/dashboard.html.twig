@@ -13,6 +13,8 @@
             {{ t('exams.title') }}
         {%- elseif view == 'absences' -%}
             {{ t('absences.title') }}
+        {%- elseif view == 'week' -%}
+            {{ t('week.title') }}
         {%- else -%}
             {{ t('title', {day: day_label}) }}
         {%- endif -%}
@@ -49,31 +51,42 @@
                 {{ t('exams.title') }}
             {%- elseif view == 'absences' -%}
                 {{ t('absences.title') }}
+            {%- elseif view == 'week' -%}
+                {{ t('week.title') }}
             {%- else -%}
                 {{ day_label }}
             {%- endif -%}
         </h1>
 
-        {% if homework_enabled or exams_enabled or absences_enabled %}
-            <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}{{ absences_enabled ? ' / ' ~ t('nav.absences') : '' }}">
-                <a class="views__link{{ view == 'timetable' ? ' views__link--active' : '' }}"
+        <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}{{ absences_enabled ? ' / ' ~ t('nav.absences') : '' }}">
+            <a class="views__link{{ view in ['timetable', 'week'] ? ' views__link--active' : '' }}"
+               href="{{ path('dashboard') }}"
+               {%- if view in ['timetable', 'week'] %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
+            {% if homework_enabled %}
+                <a class="views__link{{ view in ['homework', 'homework_done'] ? ' views__link--active' : '' }}"
+                   href="{{ path('homework') }}"
+                   {%- if view in ['homework', 'homework_done'] %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
+            {% endif %}
+            {% if exams_enabled %}
+                <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
+                   href="{{ path('exams') }}"
+                   {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
+            {% endif %}
+            {% if absences_enabled %}
+                <a class="views__link{{ view == 'absences' ? ' views__link--active' : '' }}"
+                   href="{{ path('absences') }}"
+                   {%- if view == 'absences' %} aria-current="page"{% endif %}>{{ t('nav.absences') }}</a>
+            {% endif %}
+        </nav>
+
+        {% if view in ['timetable', 'week'] %}
+            <nav class="subviews" aria-label="{{ t('nav.timetable') }}">
+                <a class="subviews__link{{ view == 'timetable' ? ' subviews__link--active' : '' }}"
                    href="{{ path('dashboard') }}"
-                   {%- if view == 'timetable' %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
-                {% if homework_enabled %}
-                    <a class="views__link{{ view in ['homework', 'homework_done'] ? ' views__link--active' : '' }}"
-                       href="{{ path('homework') }}"
-                       {%- if view in ['homework', 'homework_done'] %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
-                {% endif %}
-                {% if exams_enabled %}
-                    <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
-                       href="{{ path('exams') }}"
-                       {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
-                {% endif %}
-                {% if absences_enabled %}
-                    <a class="views__link{{ view == 'absences' ? ' views__link--active' : '' }}"
-                       href="{{ path('absences') }}"
-                       {%- if view == 'absences' %} aria-current="page"{% endif %}>{{ t('nav.absences') }}</a>
-                {% endif %}
+                   {%- if view == 'timetable' %} aria-current="page"{% endif %}>{{ t('nav.day') }}</a>
+                <a class="subviews__link{{ view == 'week' ? ' subviews__link--active' : '' }}"
+                   href="{{ path('week') }}"
+                   {%- if view == 'week' %} aria-current="page"{% endif %}>{{ t('nav.week') }}</a>
             </nav>
         {% endif %}
 
@@ -109,6 +122,19 @@
                     {{ t('status.none') }}
                 {% endif %}
             </p>
+        {% endif %}
+
+        {% if view == 'week' %}
+            <nav class="pager" aria-label="{{ t('header.pager') }}">
+                <a class="pager__link pager__link--prev" rel="prev" href="{{ path('week', {day: previous_week}) }}">
+                    <span class="pager__arrow" aria-hidden="true">&larr;</span>
+                    <span class="pager__label">{{ previous_week_label }}</span>
+                </a>
+                <a class="pager__link pager__link--next" rel="next" href="{{ path('week', {day: next_week}) }}">
+                    <span class="pager__label">{{ next_week_label }}</span>
+                    <span class="pager__arrow" aria-hidden="true">&rarr;</span>
+                </a>
+            </nav>
         {% endif %}
     </header>
 
@@ -205,6 +231,7 @@
                     {% if student.absences is empty %}
                         <p class="empty">{{ t('absences.none') }}</p>
                     {% else %}
+                        <p class="absences__summary">{{ t('absences.summary', {excused: student.absences_excused_count, unexcused: student.absences_unexcused_count}) }}</p>
                         <ol class="absences">
                             {% for absence in student.absences %}
                                 <li class="absence">
@@ -243,6 +270,38 @@
                             {% endfor %}
                         </ol>
                     {% endif %}
+                {% elseif view == 'week' %}
+                    <div class="week">
+                        {% for day in days %}
+                            <div class="week__day">
+                                <h3 class="week__day-label">{{ day.label }}</h3>
+                                {% set dayLessons = student.by_date[day.date] %}
+                                {% if dayLessons is empty %}
+                                    <p class="week__empty">{{ t('week.empty') }}</p>
+                                {% else %}
+                                    <ol class="week__lessons">
+                                        {% for entry in dayLessons %}
+                                            {% set lesson = entry.lesson %}
+                                            <li class="week__lesson{{ lesson.isCancelled ? ' week__lesson--cancelled' : '' }}{{ lesson.isSubstituted ? ' week__lesson--shifted' : '' }}{{ entry.current ? ' week__lesson--now' : '' }}">
+                                                <span class="week__lesson-time">{{ lesson.start }}</span>
+                                                <span class="week__lesson-subject">
+                                                    {{ lesson.subject }}
+                                                    {% if lesson.isCancelled %}
+                                                        <span class="week__lesson-flag">({{ t('lesson.cancelled') }})</span>
+                                                    {% elseif lesson.isSubstituted %}
+                                                        <span class="week__lesson-flag">({{ t('lesson.substitution') }})</span>
+                                                    {% endif %}
+                                                </span>
+                                                {% if lesson.rooms is not empty %}
+                                                    <span class="week__lesson-room">{{ lesson.roomLine }}</span>
+                                                {% endif %}
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
                 {% elseif student.lessons is empty %}
                     <p class="empty">{{ t('student.empty') }}</p>
                 {% else %}
@@ -305,7 +364,12 @@
             {% if from_cache %}
                 <span class="site-foot__cache">({{ t('footer.cached', {minutes: cache_minutes_left}) }})</span>
             {% endif %}
-            {% if not is_today %}
+            {% if view == 'week' %}
+                {% if not is_current_week %}
+                    <span aria-hidden="true">·</span>
+                    <a href="{{ path('week') }}">{{ t('footer.this_week') }}</a>
+                {% endif %}
+            {% elseif not is_today %}
                 <span aria-hidden="true">·</span>
                 <a href="{{ path('dashboard') }}">{{ t('footer.today') }}</a>
             {% endif %}

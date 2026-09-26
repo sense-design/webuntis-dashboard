@@ -38,6 +38,23 @@ final class TimetableProvider
     }
 
     /**
+     * A full school week (Monday-Friday) for every configured student, each
+     * student's lessons grouped by date. $monday must already be a Monday -
+     * callers resolve which Monday to ask for (e.g. from a day picked by
+     * the pager), the same way fetchDay() takes an exact day rather than
+     * snapping one itself.
+     *
+     * @return array{0: list<array{name: string, days: array<string, list<Lesson>>, error: ?string}>, 1: CacheInfo}
+     */
+    public function fetchWeek(\DateTimeInterface $monday): array
+    {
+        return $this->cachedGet(
+            'webuntis_dashboard.week.'.$monday->format('Y-m-d'),
+            fn () => $this->fetchWeekUncached($monday, $monday->modify('+4 days')),
+        );
+    }
+
+    /**
      * Open homework for every configured student, newest due date last. Not
      * tied to a day: WebUntis is asked for a window around today and the
      * client keeps whatever is still outstanding.
@@ -215,21 +232,7 @@ final class TimetableProvider
                         isset($student['element_type']) ? (int) $student['element_type'] : null,
                     );
 
-                    // WebUntis returns every parallel course of a year group for
-                    // a student (e.g. both Religion and Praktische Philosophie),
-                    // so drop the ones this student does not attend. Subject
-                    // names carry stray double spaces, so compare loosely.
-                    $hidden = $this->config->hiddenSubjects($student['name']);
-                    if ([] !== $hidden) {
-                        $tidy = static fn (string $name): string => trim((string) preg_replace('/\s+/', ' ', $name));
-                        $hidden = array_map($tidy, $hidden);
-                        $lessons = array_values(array_filter(
-                            $lessons,
-                            static fn (Lesson $lesson) => !\in_array($tidy($lesson->subject), $hidden, true),
-                        ));
-                    }
-
-                    $entry['lessons'] = $lessons;
+                    $entry['lessons'] = $this->withoutHiddenSubjects($student['name'], $lessons);
                 } catch (UntisException $exception) {
                     $this->logger->warning('WebUntis lookup failed for {student}: {message}', [
                         'student' => $student['name'],
@@ -247,6 +250,80 @@ final class TimetableProvider
         }
 
         return $results;
+    }
+
+    /**
+     * @return list<array{name: string, days: array<string, list<Lesson>>, error: ?string}>
+     */
+    private function fetchWeekUncached(\DateTimeInterface $monday, \DateTimeInterface $friday): array
+    {
+        /** @var array<string, UntisClient> $sessions */
+        $sessions = [];
+        $results = [];
+
+        try {
+            foreach ($this->config->students() as $student) {
+                $entry = ['name' => $student['name'], 'days' => [], 'error' => null];
+
+                try {
+                    $accountId = $student['account'];
+                    $sessions[$accountId] ??= $this->connect($accountId);
+
+                    $days = $sessions[$accountId]->getTimetableRange(
+                        $monday,
+                        $friday,
+                        isset($student['element_id']) ? (int) $student['element_id'] : null,
+                        isset($student['element_type']) ? (int) $student['element_type'] : null,
+                    );
+
+                    foreach ($days as $date => $lessons) {
+                        $days[$date] = $this->withoutHiddenSubjects($student['name'], $lessons);
+                    }
+
+                    $entry['days'] = $days;
+                } catch (UntisException $exception) {
+                    $this->logger->warning('WebUntis week lookup failed for {student}: {message}', [
+                        'student' => $student['name'],
+                        'message' => $exception->getMessage(),
+                    ]);
+                    $entry['error'] = $exception->getMessage();
+                }
+
+                $results[] = $entry;
+            }
+        } finally {
+            foreach ($sessions as $session) {
+                $session->logout();
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * WebUntis returns every parallel course of a year group for a student
+     * (e.g. both Religion and Praktische Philosophie), so drop the ones this
+     * student does not attend. Subject names carry stray double spaces, so
+     * compare loosely. Shared by fetchUncached() and fetchWeekUncached().
+     *
+     * @param list<Lesson> $lessons
+     *
+     * @return list<Lesson>
+     */
+    private function withoutHiddenSubjects(string $studentName, array $lessons): array
+    {
+        $hidden = $this->config->hiddenSubjects($studentName);
+        if ([] === $hidden) {
+            return $lessons;
+        }
+
+        $tidy = static fn (string $name): string => trim((string) preg_replace('/\s+/', ' ', $name));
+        $hidden = array_map($tidy, $hidden);
+
+        return array_values(array_filter(
+            $lessons,
+            static fn (Lesson $lesson) => !\in_array($tidy($lesson->subject), $hidden, true),
+        ));
     }
 
     /**

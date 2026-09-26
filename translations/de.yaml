@@ -48,11 +48,17 @@ exams:
 absences:
     title: 'Fehlzeiten'
     none: 'Keine Fehlzeiten erfasst.'
+    summary: '{excused} entschuldigt, {unexcused} unentschuldigt'
     range: '{from} – {to}'
     excused: 'Entschuldigt'
     unexcused: 'Unentschuldigt'
     entered_by: 'Eingetragen von {user}'
     excused_by: 'Entschuldigt von {user}'
+
+week:
+    title: 'Wochenübersicht'
+    empty: 'Kein Unterricht.'
+    pager: 'KW {number}'
 
 admin:
     title: 'Einstellungen'
@@ -82,6 +88,8 @@ admin:
 
 nav:
     timetable: 'Stundenplan'
+    day: 'Tag'
+    week: 'Woche'
     homework: 'Hausaufgaben'
     exams: 'Prüfungen'
     absences: 'Fehlzeiten'
@@ -93,6 +101,7 @@ footer:
     updated: 'Abgerufen um {time}'
     cached: 'aus dem Cache, noch {minutes} Min. gültig'
     today: 'Zurück zu heute'
+    this_week: 'Zurück zu dieser Woche'
     admin: 'Einstellungen'
     tagline: 'Mit {heart} für Open Source gebaut'
     source: 'Quellcode auf GitHub'

@@ -190,6 +190,19 @@ only shows tabs for the views that are enabled.
 `?day=tomorrow` or `?day=2026-09-14` shows another day. The header has a pager
 to the previous and next school day; Saturdays and Sundays are stepped over.
 
+`/week` switches to the week view: Monday-Friday of every student's
+timetable at once, days stacked and each lesson a single compact line (time,
+subject, room), so the whole school week is scannable without paging day by
+day. Cancelled and substituted lessons are still flagged, just tersely -
+`(fällt aus)`/`(Vertretung)` next to the subject rather than the day view's
+full detail. Unlike homework/exams/absences it is not an optional feature
+with its own toggle: it is another way of showing the same timetable data
+`/` already fetches, so it shares the "Stundenplan" tab with `/` rather than
+getting a tab of its own - a "Tag"/"Woche" pair right underneath switches
+between the two. `?day=` picks any day in the target week the same way it
+picks a day on `/`; the pager here steps a week at a time instead of a
+school day, and shows the calendar week number ("KW 38") rather than a date.
+
 `/homework` switches to the homework list: every student's outstanding
 homework, sorted by due date, read from the mobile app's
 `/WebUntis/api/homeworks/lessons` endpoint. Completed assignments (as
@@ -284,7 +297,7 @@ src/Untis/HomeworkTracker.php   Local "done" marks, layered over Homework, never
 src/Untis/Exam.php              One upcoming exam
 src/Untis/Absence.php           One absence entry, past or ongoing
 src/Asset/MtimeVersionStrategy.php      asset() cache-busting, keyed by file mtime
-src/Controller/DashboardController.php  Dashboard, homework, exams, absences, manifest, /setup helper
+src/Controller/DashboardController.php  Dashboard, week view, homework, exams, absences, manifest, /setup helper
 src/Controller/AdminController.php      /admin settings form and /admin/subjects, reads and saves via ConfigLoader
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function

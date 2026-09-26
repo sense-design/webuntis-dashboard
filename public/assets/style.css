@@ -295,6 +295,89 @@ body {
     font-weight: 600;
 }
 
+/* Week view ---------------------------------------------------------------- */
+
+.week {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.week__day-label {
+    margin: 0 0 0.35rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+}
+
+.week__empty {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.week__lessons {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.week__lesson {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.3rem 0;
+    border-top: 1px solid var(--rule);
+    font-size: 0.9375rem;
+}
+
+.week__lesson:first-child {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.week__lesson-time {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    color: var(--muted);
+}
+
+.week__lesson-subject {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+}
+
+.week__lesson-room {
+    flex: none;
+    color: var(--muted);
+}
+
+.week__lesson-flag {
+    font-weight: 500;
+    color: var(--shift);
+}
+
+.week__lesson--cancelled .week__lesson-subject {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    color: var(--muted);
+    font-weight: 550;
+}
+
+.week__lesson--shifted .week__lesson-subject {
+    color: var(--shift);
+}
+
+.week__lesson--now .week__lesson-time,
+.week__lesson--now .week__lesson-subject {
+    color: var(--accent);
+    font-weight: 700;
+}
+
 /* Homework ----------------------------------------------------------------- */
 
 .homework {
@@ -459,6 +542,12 @@ body {
 }
 
 /* Absences ----------------------------------------------------------------- */
+
+.absences__summary {
+    margin: 0 0 0.85rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
 
 .absences {
     list-style: none;

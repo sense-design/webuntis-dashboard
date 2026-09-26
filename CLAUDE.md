@@ -38,6 +38,15 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   `DashboardController::homework()`/`exams()`/`absences()`) rather than
   rendering empty; a disabled display-only feature (free periods) just
   renders without it. A new optional feature should follow the same shape.
+  The week view (`/week`) is deliberately not one of these: it is a display
+  mode of the same timetable data `/` already shows (no separate WebUntis
+  module, no permission-wall risk of its own), not a distinct optional
+  feature, so it has no `features.week` toggle. It also does not get its own
+  top-level nav tab - `/` and `/week` share the "Stundenplan" tab in `.views`
+  (active for `view in ['timetable', 'week']`) and are switched between via
+  their own `.subviews` pair ("Tag"/"Woche"), the same component homework's
+  Offen/Erledigt split and `/admin`'s Settings/Fächer split already use -
+  keeps the main nav from growing a tab per timetable display mode.
 - `config/untis.yaml` is never written to by the app, only read. Anything a
   user should be able to change at runtime (`/admin`) is layered on top of it
   from `var/settings.yaml` instead, via `ConfigLoader::saveSettings()` /
@@ -115,7 +124,22 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   requested day, not "today", so a past/future day still resolves
   correctly) to turn it into the same friendly name the timetable otherwise
   shows, via `replacedNames()`'s `$nameMap` param. An ordinary day with no
-  substitution costs no extra request.
+  substitution costs no extra request. `getTimetable()` is `getTimetableRange($day, $day, ...)[$day's key] ?? []` -
+  the week view (`/week`) is what `getTimetableRange()` was actually added
+  for, grouping a Monday-Friday fetch by date in one pass (one substitution
+  lookup for the whole week, not one per day). A row's raw `date` (a `Ymd`
+  int, same shape as everywhere else) is only ever used to group rows before
+  building `Lesson`s - `Lesson` itself still has no date field, since it is
+  always handed back already grouped by the day it belongs to. The week
+  pager's previous/next labels are the ISO-8601 calendar week number
+  (`DateTimeInterface::format('W')`, via `formatCalendarWeek()`) rather than
+  a date - a week is normally referred to by its own number ("KW 39"), not
+  the date of the Monday it starts on. `day.is_today` (per weekday, set in
+  `DashboardController::week()`) is still needed for the "current lesson"
+  flag inside that day, but is deliberately not used for any visual marker
+  on the day heading itself - colouring the date text there tried that and
+  turned out to be low-contrast and hard to read, so today's column in the
+  week view looks like any other.
 - The "current lesson" marker (`entry.current`, set in
   `DashboardController::withFreePeriods()`) is computed once at render time
   from `$now` (only non-null when `$isToday`, since "now" means nothing on

@@ -103,6 +103,80 @@ final class DashboardController extends AbstractController
     }
 
     /**
+     * The week view: Monday-Friday of every configured student's timetable
+     * at once, one compact line per lesson - no free-period gaps and no
+     * full substitution text, the day view is where those details live -
+     * so the whole school week is scannable without paging day by day.
+     * Not gated by a `features.*` toggle like homework/exams/absences: it
+     * is a display mode of the same timetable data, not a separate
+     * WebUntis module that could be denied to an account.
+     */
+    #[Route('/week', name: 'week', methods: ['GET'])]
+    public function week(Request $request): Response
+    {
+        $timezone = $this->config->timezone();
+        $today = new \DateTimeImmutable('today', $timezone);
+
+        $anchor = $today;
+        $requested = (string) $request->query->get('day', '');
+        if ('' !== $requested) {
+            $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $requested, $timezone);
+            if (false !== $parsed) {
+                $anchor = $parsed;
+            }
+        }
+
+        $monday = $anchor->modify('-'.((int) $anchor->format('N') - 1).' days');
+        $todayMonday = $today->modify('-'.((int) $today->format('N') - 1).' days');
+        $now = (new \DateTimeImmutable('now', $timezone))->format('H:i');
+        $todayKey = $today->format('Y-m-d');
+
+        $days = [];
+        for ($i = 0; $i < 5; ++$i) {
+            $date = $monday->modify(\sprintf('+%d days', $i));
+            $days[] = [
+                'date' => $date->format('Y-m-d'),
+                'label' => $this->formatDayCompact($date),
+                'is_today' => $date->format('Y-m-d') === $todayKey,
+            ];
+        }
+
+        [$students, $cacheInfo] = $this->provider->fetchWeek($monday);
+        foreach ($students as $index => $student) {
+            $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+
+            $byDate = [];
+            foreach ($days as $day) {
+                $lessons = $student['days'][$day['date']] ?? [];
+                $byDate[$day['date']] = $this->withCurrentFlag($lessons, $day['is_today'] ? $now : null);
+            }
+            $students[$index]['by_date'] = $byDate;
+        }
+
+        $previousMonday = $monday->modify('-7 days');
+        $nextMonday = $monday->modify('+7 days');
+
+        return $this->render('dashboard.html.twig', [
+            'view' => 'week',
+            'students' => $students,
+            'days' => $days,
+            'is_today' => true,
+            'is_current_week' => $monday->format('Y-m-d') === $todayMonday->format('Y-m-d'),
+            'previous_week' => $previousMonday->format('Y-m-d'),
+            'next_week' => $nextMonday->format('Y-m-d'),
+            'previous_week_label' => $this->formatCalendarWeek($previousMonday),
+            'next_week_label' => $this->formatCalendarWeek($nextMonday),
+            'refresh_seconds' => $this->config->refreshSeconds(),
+            'theme' => $this->config->theme(),
+            ...$this->cacheStatus($cacheInfo, $timezone),
+            'homework_enabled' => $this->config->homeworkEnabled(),
+            'exams_enabled' => $this->config->examsEnabled(),
+            'absences_enabled' => $this->config->absencesEnabled(),
+            'admin_token' => $this->adminToken(),
+        ]);
+    }
+
+    /**
      * The homework view: every student's still-open homework, sorted by due
      * date. It has no day pager because homework is not day-scoped. Done
      * items live on their own page (homeworkDone()) rather than piling up
@@ -293,6 +367,16 @@ final class DashboardController extends AbstractController
         [$students, $cacheInfo] = $this->provider->fetchAbsences();
         foreach ($students as $index => $student) {
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
+
+            $excused = 0;
+            foreach ($student['absences'] as $absence) {
+                if ($absence->excused) {
+                    ++$excused;
+                }
+            }
+            $students[$index]['absences_excused_count'] = $excused;
+            $students[$index]['absences_unexcused_count'] = \count($student['absences']) - $excused;
+
             $students[$index]['absences'] = array_map(
                 fn (Absence $absence): array => [
                     'start_date' => $this->formatDayCompact($absence->startDate),
@@ -446,6 +530,30 @@ final class DashboardController extends AbstractController
         return $entries;
     }
 
+    /**
+     * Same "is this the one happening right now" flag as withFreePeriods(),
+     * for the week view - which has no gap entries to weave in, so it needs
+     * none of that method's splicing.
+     *
+     * @param list<Lesson> $lessons
+     *
+     * @return list<array{lesson: Lesson, current: bool}>
+     */
+    private function withCurrentFlag(array $lessons, ?string $now): array
+    {
+        $nowMinutes = null !== $now ? $this->toMinutes($now) : null;
+
+        return array_map(
+            fn (Lesson $lesson): array => [
+                'lesson' => $lesson,
+                'current' => null !== $nowMinutes
+                    && $nowMinutes >= $this->toMinutes($lesson->start)
+                    && $nowMinutes < $this->toMinutes($lesson->end),
+            ],
+            $lessons,
+        );
+    }
+
     private function toMinutes(string $time): int
     {
         [$hours, $minutes] = array_map('intval', explode(':', $time));
@@ -489,6 +597,18 @@ final class DashboardController extends AbstractController
             'month' => $day->format('m'),
             'year' => $day->format('Y'),
         ]);
+    }
+
+    /**
+     * The ISO-8601 calendar week (Kalenderwoche) $day falls in, e.g. "KW 39" -
+     * what the week pager shows for the previous/next week rather than a
+     * date, since that is how a week is normally referred to on its own.
+     * `$day` is expected to be that week's Monday, but any day in the week
+     * resolves to the same number either way (PHP's "W" is ISO-8601).
+     */
+    private function formatCalendarWeek(\DateTimeInterface $day): string
+    {
+        return $this->translator->trans('week.pager', ['number' => (int) $day->format('W')]);
     }
 
     /**

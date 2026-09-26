@@ -166,15 +166,6 @@ final class UntisClient
     /**
      * Return the lessons of a single day, sorted by start time and merged.
      *
-     * A substituted period's `orgname` (the teacher/room it replaced) is
-     * only ever a short code, never a longname of its own - unlike the
-     * current teacher/room, which the row already carries a longname for -
-     * so when $day has any substitution at all, a supplementary
-     * getTeacherNames()/getRoomNames() lookup over a window centred on $day
-     * resolves it to the same friendly name the timetable otherwise shows.
-     * Skipped entirely on an ordinary day with no substitution, to spare
-     * WebUntis the extra request.
-     *
      * @return list<Lesson>
      */
     public function getTimetable(
@@ -182,26 +173,64 @@ final class UntisClient
         ?int $elementId = null,
         ?int $elementType = null,
     ): array {
+        return $this->getTimetableRange($day, $day, $elementId, $elementType)[$day->format('Y-m-d')] ?? [];
+    }
+
+    /**
+     * Every day's lessons in [$from, $to], grouped by date (Y-m-d), each
+     * day already sorted and merged the same way getTimetable() returns a
+     * single day - the week view's fetch. A day with nothing scheduled has
+     * no key at all, same as getTimetable() returning an empty list for it.
+     *
+     * A substituted period's `orgname` (the teacher/room it replaced) is
+     * only ever a short code, never a longname of its own - unlike the
+     * current teacher/room, which the row already carries a longname for -
+     * so when anything in [$from, $to] has a substitution at all, a
+     * supplementary getTeacherNames()/getRoomNames() lookup over a window
+     * centred on the range resolves it to the same friendly name the
+     * timetable otherwise shows. Skipped entirely when nothing in range is
+     * substituted, to spare WebUntis the extra request; run once for the
+     * whole range rather than once per day, since getTimetable() calling
+     * this with $from == $to already covers the single-day case.
+     *
+     * @return array<string, list<Lesson>>
+     */
+    public function getTimetableRange(
+        \DateTimeInterface $from,
+        \DateTimeInterface $to,
+        ?int $elementId = null,
+        ?int $elementType = null,
+    ): array {
         [$elementId, $elementType] = $this->resolveElement($elementId, $elementType);
 
-        $rows = $this->timetableRows($day, $day, $elementId, $elementType);
+        $rows = $this->timetableRows($from, $to, $elementId, $elementType);
 
         $teacherNames = [];
         $roomNames = [];
         if ($this->hasSubstitution($rows)) {
-            $from = $day->modify('-14 days');
-            $to = $day->modify('+14 days');
-            $teacherNames = $this->getTeacherNames($from, $to, $elementId, $elementType);
-            $roomNames = $this->getRoomNames($from, $to, $elementId, $elementType);
+            $window = $from->modify('-14 days');
+            $windowEnd = $to->modify('+14 days');
+            $teacherNames = $this->getTeacherNames($window, $windowEnd, $elementId, $elementType);
+            $roomNames = $this->getRoomNames($window, $windowEnd, $elementId, $elementType);
         }
 
-        $lessons = array_map(
-            fn (array $row): Lesson => $this->toLesson($row, $teacherNames, $roomNames),
-            $rows,
-        );
-        usort($lessons, static fn (Lesson $a, Lesson $b) => $a->start <=> $b->start);
+        $rowsByDate = [];
+        foreach ($rows as $row) {
+            $rowsByDate[(string) ($row['date'] ?? '')][] = $row;
+        }
 
-        return $this->mergeAdjacent($lessons);
+        $result = [];
+        foreach ($rowsByDate as $dateStamp => $dayRows) {
+            $lessons = array_map(
+                fn (array $row): Lesson => $this->toLesson($row, $teacherNames, $roomNames),
+                $dayRows,
+            );
+            usort($lessons, static fn (Lesson $a, Lesson $b) => $a->start <=> $b->start);
+
+            $result[$this->parseDateStamp((int) $dateStamp)->format('Y-m-d')] = $this->mergeAdjacent($lessons);
+        }
+
+        return $result;
     }
 
     /**
