@@ -183,13 +183,31 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
 - `TimetableProvider::fetchDay()`/`fetchHomework()`/`fetchExams()` each
   return `[data, CacheInfo]`, not just `data` - `CacheInfo` (fetchedAt,
   expiresAt, fromCache) is what the footer's "Fetched at" / "cached, N min
-  left" comes from. It is derived from the cache item's own expiry metadata
-  (`$metadata[ItemInterface::METADATA_EXPIRY]` from `CacheInterface::get()`'s
-  by-ref `$metadata` param) rather than stored in the cached payload, so it
-  stays correct even if `cache_ttl` changes between one write and the next
-  read. `fromCache` is set from inside the compute callback (`$hit = false`
-  there), which Symfony only calls on a miss - do not try to derive hit/miss
-  from the metadata itself, it is populated the same way either way.
+  left" comes from. `expiresAt` is derived from the cache item's own expiry
+  metadata (`$metadata[ItemInterface::METADATA_EXPIRY]` from
+  `CacheInterface::get()`'s by-ref `$metadata` param) rather than stored in
+  the cached payload, so it stays correct even if `cache_ttl` changes
+  between one write and the next read. `fromCache` is set from inside the
+  compute callback (`$hit = false` there), which Symfony only calls on a
+  miss - do not try to derive hit/miss from the metadata itself, it is
+  populated the same way either way. `fetchedAt` is the one field that
+  *is* stored in the payload (an `{data, fetchedAt}` envelope
+  `cachedGet()` wraps around the real value and unwraps again before
+  returning) rather than derived from expiry metadata - unlike `cache_ttl`,
+  which is one config value read fresh on every call, a cached result can
+  have been written with either of two different TTLs (see next point), so
+  a later hit has no way to know which one produced the entry it is reading
+  and can't back-calculate `fetchedAt` from `expiresAt` correctly; storing
+  the real timestamp sidesteps that rather than guessing.
+- A result with at least one student's `error` set is cached for
+  `ERROR_CACHE_TTL` (30s) instead of the configured `cache_ttl`, decided
+  inside `cachedGet()`'s compute callback via `hasError()` scanning the
+  freshly computed list for a non-null `error` - long enough that a real
+  WebUntis outage does not get hammered on every page load, short enough
+  that a passing hiccup does not keep showing an error for the rest of
+  `cache_ttl` once WebUntis has recovered. Applies uniformly to every
+  `cachedGet()` caller (day/homework/exams/absences/week) since they all
+  return the same `list<array{..., error: ?string}>` shape.
 - `/WebUntis/api/classreg/absences/students` requires the student's own
   `studentId` as a query parameter, unlike `/api/homeworks/lessons` and
   `/api/exams` which fetch broadly and filter the response client-side - so

@@ -93,6 +93,15 @@ final class TimetableProvider
     }
 
     /**
+     * A result with at least one student's fetch failed is cached for much
+     * less than a normal one - long enough that a real WebUntis outage does
+     * not get hit on every single page load, short enough that a passing
+     * hiccup does not keep showing an error for the rest of cache_ttl once
+     * WebUntis has recovered.
+     */
+    private const ERROR_CACHE_TTL = 30;
+
+    /**
      * Wraps CacheInterface::get() so every cached fetch also reports how it
      * was served: fetched fresh just now, or from an earlier fetch still
      * within cache_ttl - shown in the footer so "why hasn't this changed
@@ -100,9 +109,17 @@ final class TimetableProvider
      * which Symfony only calls on a cache miss, so its final value tells
      * the two apart. Expiry comes back through $metadata rather than being
      * stored in the payload, so it stays correct even if cache_ttl changes
-     * between one write and the next read.
+     * between one write and the next read - but the same trick does not
+     * work for fetchedAt, since ERROR_CACHE_TTL means two different TTLs
+     * can be in play and a hit has no way to know which one produced the
+     * entry it just read (an earlier version tried "expiresAt minus
+     * whichever ttl this call would use", which is only right on the
+     * request that actually wrote the entry - a later hit could be off by
+     * cache_ttl minus ERROR_CACHE_TTL). fetchedAt is instead stored
+     * directly in the cached value itself (an envelope around the real
+     * payload), set once at write time and simply read back on every hit.
      *
-     * @template T
+     * @template T of list<array{error: ?string, ...}>
      *
      * @param callable(): T $compute
      *
@@ -115,19 +132,34 @@ final class TimetableProvider
         $hit = true;
         $metadata = [];
 
-        $value = $this->cache->get($key, function (ItemInterface $item) use ($compute, $ttl, &$hit) {
+        $envelope = $this->cache->get($key, function (ItemInterface $item) use ($compute, $ttl, $timezone, &$hit) {
             $hit = false;
-            $item->expiresAfter($ttl);
+            $result = $compute();
+            $item->expiresAfter($this->hasError($result) ? self::ERROR_CACHE_TTL : $ttl);
 
-            return $compute();
+            return ['data' => $result, 'fetchedAt' => (new \DateTimeImmutable('now', $timezone))->getTimestamp()];
         }, null, $metadata);
 
         $expiresAt = isset($metadata[ItemInterface::METADATA_EXPIRY])
             ? (new \DateTimeImmutable('@'.(int) $metadata[ItemInterface::METADATA_EXPIRY]))->setTimezone($timezone)
             : (new \DateTimeImmutable('now', $timezone))->modify(\sprintf('+%d seconds', $ttl));
-        $fetchedAt = $expiresAt->modify(\sprintf('-%d seconds', $ttl));
+        $fetchedAt = (new \DateTimeImmutable('@'.$envelope['fetchedAt']))->setTimezone($timezone);
 
-        return [$value, new CacheInfo($fetchedAt, $expiresAt, $hit)];
+        return [$envelope['data'], new CacheInfo($fetchedAt, $expiresAt, $hit)];
+    }
+
+    /**
+     * @param list<array{error: ?string, ...}> $results
+     */
+    private function hasError(array $results): bool
+    {
+        foreach ($results as $entry) {
+            if (null !== ($entry['error'] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
