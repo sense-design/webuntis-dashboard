@@ -659,13 +659,23 @@ final class DashboardController extends AbstractController
 
         // Prune with every student's ids together - pruning against one
         // student's list alone would drop the marks belonging to the others.
+        // Skip it entirely if any student's fetch failed: their list comes
+        // back empty, and a passing WebUntis hiccup would otherwise wipe
+        // their marks. Done ids are not tagged by student, so there is no
+        // way to prune only the students that did load.
         $allIds = [];
+        $complete = true;
         foreach ($students as $student) {
+            if (null !== $student['error']) {
+                $complete = false;
+            }
             foreach ($student['homework'] as $homework) {
                 $allIds[] = $homework->id;
             }
         }
-        $this->homeworkTracker->prune($allIds);
+        if ($complete) {
+            $this->homeworkTracker->prune($allIds);
+        }
 
         foreach ($students as $index => $student) {
             $students[$index]['accent'] = self::ACCENTS[$index % \count(self::ACCENTS)];
