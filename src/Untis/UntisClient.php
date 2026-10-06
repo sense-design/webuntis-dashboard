@@ -815,11 +815,13 @@ final class UntisClient
     private function toLesson(array $row, array $teacherNames = [], array $roomNames = []): Lesson
     {
         $subjects = $this->names($row['su'] ?? []);
-        $notes = array_values(array_filter([
-            (string) ($row['substText'] ?? ''),
-            (string) ($row['info'] ?? ''),
-            (string) ($row['lstext'] ?? ''),
-        ]));
+        // Schools often repeat the same text across these fields (a class
+        // trip's destination in both substText and lstext, say), so dedupe.
+        $notes = array_values(array_unique(array_filter([
+            trim((string) ($row['substText'] ?? '')),
+            trim((string) ($row['info'] ?? '')),
+            trim((string) ($row['lstext'] ?? '')),
+        ])));
 
         return new Lesson(
             start: $this->formatTime((int) ($row['startTime'] ?? 0)),
