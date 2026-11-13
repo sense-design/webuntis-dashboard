@@ -12,6 +12,8 @@ use App\Untis\Exam;
 use App\Untis\Homework;
 use App\Untis\HomeworkTracker;
 use App\Untis\Lesson;
+use App\Untis\ParentsDay;
+use App\Untis\ParentsDayAppointment;
 use App\Untis\TimetableProvider;
 use App\Untis\UntisException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -98,6 +100,7 @@ final class DashboardController extends AbstractController
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => $this->config->examsEnabled(),
             'absences_enabled' => $this->config->absencesEnabled(),
+            'parents_day_enabled' => $this->config->parentsDayEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
     }
@@ -172,6 +175,7 @@ final class DashboardController extends AbstractController
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => $this->config->examsEnabled(),
             'absences_enabled' => $this->config->absencesEnabled(),
+            'parents_day_enabled' => $this->config->parentsDayEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
     }
@@ -219,6 +223,7 @@ final class DashboardController extends AbstractController
             'homework_enabled' => true,
             'exams_enabled' => $this->config->examsEnabled(),
             'absences_enabled' => $this->config->absencesEnabled(),
+            'parents_day_enabled' => $this->config->parentsDayEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
     }
@@ -264,6 +269,7 @@ final class DashboardController extends AbstractController
             'homework_enabled' => true,
             'exams_enabled' => $this->config->examsEnabled(),
             'absences_enabled' => $this->config->absencesEnabled(),
+            'parents_day_enabled' => $this->config->parentsDayEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
     }
@@ -343,6 +349,7 @@ final class DashboardController extends AbstractController
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => true,
             'absences_enabled' => $this->config->absencesEnabled(),
+            'parents_day_enabled' => $this->config->parentsDayEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
     }
@@ -404,8 +411,129 @@ final class DashboardController extends AbstractController
             'homework_enabled' => $this->config->homeworkEnabled(),
             'exams_enabled' => $this->config->examsEnabled(),
             'absences_enabled' => true,
+            'parents_day_enabled' => $this->config->parentsDayEnabled(),
             'admin_token' => $this->adminToken(),
         ]);
+    }
+
+    /**
+     * The parent-teacher day view ("Elternsprechtag", "LET" at some
+     * schools): one timeline for the parents rather than one column per
+     * student like every other view - the point is to see in which order
+     * to walk from one teacher to the next, so every child's appointments
+     * are merged per event, grouped by day and sorted by time, each one
+     * labelled with the child it is for (in that child's accent colour).
+     * An event nobody has booked anything for yet is still listed, with the
+     * booking deadline while booking is open, so it does not go unnoticed.
+     *
+     * Guarded by the `features.parents_day` config key; disabled, the route
+     * behaves as if it did not exist, same as `/setup` without its token.
+     */
+    #[Route('/parents-day', name: 'parents_day', methods: ['GET'])]
+    public function parentsDay(): Response
+    {
+        if (!$this->config->parentsDayEnabled()) {
+            throw $this->createNotFoundException();
+        }
+
+        $timezone = $this->config->timezone();
+        $now = new \DateTimeImmutable('now', $timezone);
+
+        [$students, $cacheInfo] = $this->provider->fetchParentsDays();
+
+        $events = [];
+        $errors = [];
+        foreach ($students as $index => $student) {
+            $accent = self::ACCENTS[$index % \count(self::ACCENTS)];
+            if (null !== $student['error']) {
+                $errors[] = ['name' => $student['name'], 'accent' => $accent, 'error' => $student['error']];
+                continue;
+            }
+
+            foreach ($student['parents_days'] as $parentsDay) {
+                /** @var ParentsDay $parentsDay */
+                $events[$parentsDay->id] ??= $this->parentsDayEvent($parentsDay, $now, $timezone);
+
+                foreach ($parentsDay->appointments as $appointment) {
+                    /** @var ParentsDayAppointment $appointment */
+                    $key = $appointment->date->format('Y-m-d');
+                    $events[$parentsDay->id]['days'][$key] ??= [
+                        'label' => $this->formatDay($appointment->date),
+                        'appointments' => [],
+                    ];
+                    $events[$parentsDay->id]['days'][$key]['appointments'][] = [
+                        'start' => $appointment->start,
+                        'end' => $appointment->end,
+                        'student' => $student['name'],
+                        'accent' => $accent,
+                        'teacher' => $appointment->teacher,
+                        'subjects' => $appointment->subjects,
+                        'room' => $appointment->room,
+                    ];
+                }
+            }
+        }
+
+        uasort($events, static fn (array $a, array $b): int => $a['sort'] <=> $b['sort']);
+        foreach ($events as $id => $event) {
+            ksort($event['days']);
+            foreach ($event['days'] as $key => $day) {
+                usort($day['appointments'], static fn (array $a, array $b): int => [$a['start'], $a['student']] <=> [$b['start'], $b['student']]);
+                $event['days'][$key] = $day;
+            }
+            $event['days'] = array_values($event['days']);
+            $events[$id] = $event;
+        }
+
+        return $this->render('dashboard.html.twig', [
+            'view' => 'parents_day',
+            'students' => [],
+            'events' => array_values($events),
+            'errors' => $errors,
+            'is_today' => true,
+            'refresh_seconds' => $this->config->refreshSeconds(),
+            'theme' => $this->config->theme(),
+            ...$this->cacheStatus($cacheInfo, $timezone),
+            'homework_enabled' => $this->config->homeworkEnabled(),
+            'exams_enabled' => $this->config->examsEnabled(),
+            'absences_enabled' => $this->config->absencesEnabled(),
+            'parents_day_enabled' => true,
+            'admin_token' => $this->adminToken(),
+        ]);
+    }
+
+    /**
+     * The per-event header data of parentsDay(), without its appointments.
+     * The booking deadline only shows while it is still ahead: WebUntis
+     * hands it over as a wall-clock time with no zone, read here in the
+     * school's own timezone.
+     *
+     * @return array{name: string, range: string, booking_until: ?string, sort: string, days: array<string, mixed>}
+     */
+    private function parentsDayEvent(ParentsDay $parentsDay, \DateTimeImmutable $now, \DateTimeZone $timezone): array
+    {
+        $bookingUntil = null;
+        if (null !== $parentsDay->bookingUntil) {
+            $deadline = new \DateTimeImmutable($parentsDay->bookingUntil->format('Y-m-d H:i'), $timezone);
+            if ($deadline > $now) {
+                $bookingUntil = $this->formatDayCompact($deadline).' '.$deadline->format('H:i');
+            }
+        }
+
+        $sameDay = $parentsDay->startDate->format('Y-m-d') === $parentsDay->endDate->format('Y-m-d');
+
+        return [
+            'name' => $parentsDay->name,
+            'range' => $sameDay
+                ? $this->formatDayCompact($parentsDay->startDate)
+                : $this->translator->trans('parents_day.range', [
+                    'from' => $this->formatDayCompact($parentsDay->startDate),
+                    'to' => $this->formatDayCompact($parentsDay->endDate),
+                ]),
+            'booking_until' => $bookingUntil,
+            'sort' => $parentsDay->startDate->format('Y-m-d').'-'.$parentsDay->id,
+            'days' => [],
+        ];
     }
 
     /**

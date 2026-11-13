@@ -15,6 +15,8 @@
             {{ t('absences.title') }}
         {%- elseif view == 'week' -%}
             {{ t('week.title') }}
+        {%- elseif view == 'parents_day' -%}
+            {{ t('parents_day.title') }}
         {%- else -%}
             {{ t('title', {day: day_label}) }}
         {%- endif -%}
@@ -53,12 +55,14 @@
                 {{ t('absences.title') }}
             {%- elseif view == 'week' -%}
                 {{ t('week.title') }}
+            {%- elseif view == 'parents_day' -%}
+                {{ t('parents_day.title') }}
             {%- else -%}
                 {{ day_label }}
             {%- endif -%}
         </h1>
 
-        <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}{{ absences_enabled ? ' / ' ~ t('nav.absences') : '' }}">
+        <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}{{ absences_enabled ? ' / ' ~ t('nav.absences') : '' }}{{ parents_day_enabled ? ' / ' ~ t('nav.parents_day') : '' }}">
             <a class="views__link{{ view in ['timetable', 'week'] ? ' views__link--active' : '' }}"
                href="{{ path('dashboard') }}"
                {%- if view in ['timetable', 'week'] %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
@@ -76,6 +80,11 @@
                 <a class="views__link{{ view == 'absences' ? ' views__link--active' : '' }}"
                    href="{{ path('absences') }}"
                    {%- if view == 'absences' %} aria-current="page"{% endif %}>{{ t('nav.absences') }}</a>
+            {% endif %}
+            {% if parents_day_enabled %}
+                <a class="views__link{{ view == 'parents_day' ? ' views__link--active' : '' }}"
+                   href="{{ path('parents_day') }}"
+                   {%- if view == 'parents_day' %} aria-current="page"{% endif %}>{{ t('nav.parents_day') }}</a>
             {% endif %}
         </nav>
 
@@ -138,6 +147,66 @@
         {% endif %}
     </header>
 
+    {% if view == 'parents_day' %}
+    <div class="parents-day">
+        {% for error in errors %}
+            <p class="problem">{{ error.name }}: {{ t('student.error', {message: error.error}) }}</p>
+        {% endfor %}
+
+        {% if events is empty and errors is empty %}
+            <section class="student">
+                <p class="empty">{{ t('parents_day.none') }}</p>
+            </section>
+        {% endif %}
+
+        {% for event in events %}
+            <section class="student">
+                <h2 class="parents-day__head">
+                    <span>{{ event.name }}</span>
+                    <span class="parents-day__range">{{ event.range }}</span>
+                </h2>
+
+                {% if event.booking_until %}
+                    <p class="parents-day__booking">{{ t('parents_day.booking_until', {deadline: event.booking_until}) }}</p>
+                {% endif %}
+
+                {% if event.days is empty %}
+                    <p class="empty">{{ t('parents_day.nothing_booked') }}</p>
+                {% endif %}
+
+                {% for day in event.days %}
+                    <h3 class="parents-day__day">{{ day.label }}</h3>
+                    <ol class="appointments">
+                        {% for appointment in day.appointments %}
+                            <li class="appointment" style="--accent: {{ appointment.accent }}">
+                                <span class="appointment__time">
+                                    <span class="appointment__start">{{ appointment.start }}</span>
+                                    <span class="appointment__end">{{ appointment.end }}</span>
+                                </span>
+                                <div class="appointment__body">
+                                    <div class="appointment__head">
+                                        <span class="appointment__teacher">{{ appointment.teacher }}</span>
+                                        <span class="appointment__student">{{ appointment.student }}</span>
+                                    </div>
+                                    {% if appointment.subjects is not empty or appointment.room %}
+                                        <p class="appointment__meta">
+                                            {% if appointment.subjects is not empty %}
+                                                <span>{{ appointment.subjects|join(', ') }}</span>
+                                            {% endif %}
+                                            {% if appointment.room %}
+                                                <span>{{ t('parents_day.room', {room: appointment.room}) }}</span>
+                                            {% endif %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                {% endfor %}
+            </section>
+        {% endfor %}
+    </div>
+    {% else %}
     <div class="columns">
         {% for student in students %}
             <section class="student" style="--accent: {{ student.accent }}">
@@ -362,6 +431,7 @@
             </section>
         {% endfor %}
     </div>
+    {% endif %}
 
     <footer class="site-foot">
         <p class="site-foot__updated">

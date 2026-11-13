@@ -180,10 +180,11 @@ error instead of a confusing 500 on every request.
 | `features.exams` | `true` | Exams view and its header tab |
 | `features.absences` | `true` | Absences view and its header tab |
 | `features.free_periods` | `true` | Free-period markers in the timetable |
+| `features.parents_day` | `true` | Parent-teacher day view and its header tab |
 
 Every feature defaults to on; set the ones you don't want under `features:` in
 `config/untis.yaml` (see `untis.yaml.dist`), or flip them from `/admin` (see
-above). A disabled `/homework`, `/exams` or `/absences` 404s rather than
+above). A disabled `/homework`, `/exams`, `/absences` or `/parents-day` 404s rather than
 rendering empty, the same way `/setup` does without its token, and the header
 only shows tabs for the views that are enabled.
 
@@ -234,7 +235,20 @@ app's `/WebUntis/api/classreg/absences/students` endpoint, including the
 reason, any excuse note and whether it has been excused yet. The school year's
 own start and end dates come from WebUntis itself
 (`getCurrentSchoolyear`), not an assumed calendar date, since not every school
-starts on 1 August. All four views are linked from the header.
+starts on 1 August.
+
+`/parents-day` lists the appointments booked for an open parent-teacher day
+("Elternsprechtag", "LET" at some schools) as one timeline for the parents
+rather than one column per student: every child's appointments merged per
+event, grouped by day and sorted by time, each labelled with the child it is
+for, plus the booking deadline while booking is still open. There is no
+documented API for this; it reads the same `jsonrpc_web/jsonParentsDayService`
+the WebUntis web UI uses (read methods only - the dashboard never books or
+cancels anything), and finds which events exist from the links on the legacy
+start page. Schools usually only open this shortly before the event, so most
+of the year the view just says there is nothing to book.
+
+All views are linked from the header.
 
 The UI ships in English and German, set app-wide by `locale`. Strings live in
 `translations/en.yaml` and `translations/de.yaml`.
@@ -296,8 +310,10 @@ src/Untis/Homework.php          One outstanding homework assignment
 src/Untis/HomeworkTracker.php   Local "done" marks, layered over Homework, never synced to WebUntis
 src/Untis/Exam.php              One upcoming exam
 src/Untis/Absence.php           One absence entry, past or ongoing
+src/Untis/ParentsDay.php        One open parent-teacher day, with a student's booked appointments
+src/Untis/ParentsDayAppointment.php     One booked parent-teacher slot
 src/Asset/MtimeVersionStrategy.php      asset() cache-busting, keyed by file mtime
-src/Controller/DashboardController.php  Dashboard, week view, homework, exams, absences, manifest, /setup helper
+src/Controller/DashboardController.php  Dashboard, week view, homework, exams, absences, parent-teacher day, manifest, /setup helper
 src/Controller/AdminController.php      /admin settings form and /admin/subjects, reads and saves via ConfigLoader
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function

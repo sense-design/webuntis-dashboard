@@ -40,6 +40,9 @@ final class UntisClient
     private ?string $sessionId = null;
     private ?Person $person = null;
 
+    /** The web UI's per-session CSRF token, see csrfToken(). */
+    private ?string $csrfToken = null;
+
     /** @var list<Person> */
     private array $children = [];
 
@@ -594,6 +597,166 @@ final class UntisClient
     }
 
     /**
+     * Every parent-teacher day the school currently has open, with the
+     * appointments booked on it for one student, soonest first.
+     *
+     * No documented API covers this. The web UI's own parent-day page reads
+     * it over a separate JSON-RPC service, `jsonrpc_web/jsonParentsDayService`
+     * (getParentsDayMetaData / getParentTimeSlots, both taking
+     * [parentsDayId, -1]), which unlike jsonrpc.do insists on the session's
+     * CSRF token - see csrfToken(). The service also has methods that book
+     * and cancel appointments; only the two read ones are ever called here.
+     *
+     * Which parent days exist at all is not in any JSON response we know
+     * of: the event id is only on the legacy start page, main.do, as the
+     * link `loadContent('parentsday/parentview?selId=<id>')` - hence the
+     * scrape in parentsDayIds(). A school (or a WebUntis version) without
+     * that link simply yields no parent days, not an error.
+     *
+     * A booked slot names the student(s) it is for, so a parent account with
+     * several children gets each child's own appointments here, matched by
+     * element id the same way getHomework()/getExams() match theirs.
+     * Subjects come back as short codes ("D", "PK_ERG"); when anything is
+     * booked they are resolved via getSubjectNames() over the two weeks up
+     * to the event, the same label the timetable shows.
+     *
+     * @return list<ParentsDay>
+     */
+    public function getParentsDays(?int $elementId = null, ?int $elementType = null): array
+    {
+        $ids = $this->parentsDayIds();
+        if ([] === $ids) {
+            return [];
+        }
+
+        [$elementId, $elementType] = $this->resolveElement($elementId, $elementType);
+
+        $days = [];
+        foreach ($ids as $id) {
+            $meta = $this->parentsDayCall('getParentsDayMetaData', $id);
+            $slots = $this->parentsDayCall('getParentTimeSlots', $id);
+
+            $booked = [];
+            foreach ($slots as $slot) {
+                $appointment = \is_array($slot) ? ($slot['appointment'] ?? null) : null;
+                if (!\is_array($appointment)) {
+                    continue;
+                }
+
+                $studentIds = array_map(
+                    static fn ($student): int => (int) ($student['id'] ?? 0),
+                    (array) ($appointment['students'] ?? []),
+                );
+                if (!\in_array($elementId, $studentIds, true)) {
+                    continue;
+                }
+
+                $booked[] = [$slot, $appointment];
+            }
+
+            $start = $this->parseDateStamp((int) ($meta['startDate'] ?? 0));
+            $subjectNames = [] === $booked
+                ? []
+                : $this->getSubjectNames($start->modify('-14 days'), $start, $elementId, $elementType);
+
+            $appointments = [];
+            foreach ($booked as [$slot, $appointment]) {
+                $room = trim((string) ($appointment['roomName'] ?? ''));
+                $appointments[] = new ParentsDayAppointment(
+                    date: $this->parseDateStamp((int) ($slot['date'] ?? 0)),
+                    start: $this->formatTime((int) ($slot['startTime'] ?? 0)),
+                    end: $this->formatTime((int) ($slot['endTime'] ?? 0)),
+                    teacher: trim((string) ($appointment['teacherName'] ?? '')),
+                    subjects: array_values(array_map(
+                        static fn ($code): string => $subjectNames[(string) $code] ?? (string) $code,
+                        (array) ($appointment['subjects'] ?? []),
+                    )),
+                    room: '' === trim($room, '-') ? '' : $room,
+                );
+            }
+            usort($appointments, static fn (ParentsDayAppointment $a, ParentsDayAppointment $b): int => [$a->date, $a->start] <=> [$b->date, $b->start]);
+
+            $days[] = new ParentsDay(
+                id: $id,
+                name: trim((string) ($meta['name'] ?? '')),
+                startDate: $start,
+                endDate: $this->parseDateStamp((int) ($meta['endDate'] ?? 0)),
+                bookingUntil: $this->parseBookingEnd((string) ($meta['appointmentSelectionDateTimeRange'] ?? '')),
+                appointments: $appointments,
+            );
+        }
+
+        usort($days, static fn (ParentsDay $a, ParentsDay $b): int => $a->startDate <=> $b->startDate);
+
+        return $days;
+    }
+
+    /**
+     * Parent-day ids linked from the legacy start page (main.do).
+     *
+     * @return list<int>
+     */
+    private function parentsDayIds(): array
+    {
+        preg_match_all('#parentsday/parentview\?selId=(\d+)#', $this->htmlGet('main.do'), $matches);
+
+        return array_values(array_unique(array_map('intval', $matches[1])));
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function parentsDayCall(string $method, int $parentsDayId): array
+    {
+        return $this->call(
+            'jsonrpc_web/jsonParentsDayService',
+            [
+                'id' => 'webuntis-dashboard',
+                'method' => $method,
+                'params' => [$parentsDayId, -1],
+                'jsonrpc' => '2.0',
+            ],
+            headers: ['X-CSRF-TOKEN' => $this->csrfToken()],
+        );
+    }
+
+    /**
+     * End of the booking window, from WebUntis' preformatted
+     * "13.11.2026 (07:30) - 25.11.2026 (17:00) " - the metadata has no
+     * structured field for it. A wall-clock time with no timezone attached;
+     * callers read it in the school's configured timezone. Null when the
+     * string is missing or in a shape this does not recognise.
+     */
+    private function parseBookingEnd(string $range): ?\DateTimeImmutable
+    {
+        if (!preg_match('/(\d{1,2}\.\d{1,2}\.\d{4})\s*\((\d{1,2}:\d{2})\)\s*$/', trim($range), $m)) {
+            return null;
+        }
+
+        $parsed = \DateTimeImmutable::createFromFormat('!j.n.Y G:i', $m[1].' '.$m[2]);
+
+        return false !== $parsed ? $parsed : null;
+    }
+
+    /**
+     * The web UI's CSRF token for this session, which `jsonrpc_web/*` calls
+     * must send as `X-CSRF-TOKEN` (without it: HTTP 403 "Access denied").
+     * WebUntis embeds it in index.do as `"csrfToken":"..."`; read once per
+     * session and reused.
+     */
+    private function csrfToken(): string
+    {
+        if (null === $this->csrfToken) {
+            if (!preg_match('/"csrfToken"\s*:\s*"([^"]+)"/', $this->htmlGet('index.do'), $m)) {
+                throw new UntisException('WebUntis did not hand out a CSRF token for this session.');
+            }
+            $this->csrfToken = $m[1];
+        }
+
+        return $this->csrfToken;
+    }
+
+    /**
      * Absences on record for the account's student, on or after $from and
      * before $to, most recent first.
      *
@@ -720,10 +883,11 @@ final class UntisClient
     /**
      * @param array<string, mixed> $payload
      * @param array<string, string> $query
+     * @param array<string, string> $headers extra request headers
      *
      * @return array<mixed>
      */
-    private function call(string $path, array $payload, array $query = []): array
+    private function call(string $path, array $payload, array $query = [], array $headers = []): array
     {
         try {
             $response = $this->httpClient->request(
@@ -732,10 +896,10 @@ final class UntisClient
                 [
                     'query' => array_merge(['school' => $this->school], $query),
                     'json' => $payload,
-                    'headers' => [
+                    'headers' => array_merge([
                         'User-Agent' => $this->userAgent,
                         'Cookie' => $this->cookieHeader(),
-                    ],
+                    ], $headers),
                     'timeout' => 20,
                 ],
             );
@@ -817,6 +981,44 @@ final class UntisClient
             }
 
             return $response->toArray(false);
+        } catch (HttpExceptionInterface $exception) {
+            throw new UntisException(
+                sprintf('Could not reach %s: %s', $this->server, $exception->getMessage()),
+                previous: $exception,
+            );
+        }
+    }
+
+    /**
+     * GET a legacy web UI page (main.do, index.do) as raw HTML - the few
+     * things only those pages carry, see parentsDayIds() and csrfToken().
+     */
+    private function htmlGet(string $path): string
+    {
+        if (null === $this->sessionId) {
+            throw new UntisException('Not logged in.');
+        }
+
+        try {
+            $response = $this->httpClient->request(
+                'GET',
+                sprintf('https://%s/WebUntis/%s', $this->server, $path),
+                [
+                    'query' => ['school' => $this->school],
+                    'headers' => [
+                        'User-Agent' => $this->userAgent,
+                        'Cookie' => $this->cookieHeader(),
+                    ],
+                    'timeout' => 20,
+                ],
+            );
+
+            $status = $response->getStatusCode();
+            if ($status >= 400) {
+                throw new UntisException(sprintf('WebUntis answered with HTTP %d for %s.', $status, $path));
+            }
+
+            return $response->getContent(false);
         } catch (HttpExceptionInterface $exception) {
             throw new UntisException(
                 sprintf('Could not reach %s: %s', $this->server, $exception->getMessage()),

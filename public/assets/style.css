@@ -622,6 +622,141 @@ body {
     margin-right: 0;
 }
 
+/* Parent-teacher day ----------------------------------------------------- */
+
+/* One timeline for the parents across all children (see
+   DashboardController::parentsDay()), so a single readable column rather
+   than the per-student grid every other view uses. Each appointment carries
+   its child's accent colour, set inline as --accent like .student does. */
+
+.parents-day {
+    display: grid;
+    gap: 1.25rem;
+    max-width: 40rem;
+}
+
+.parents-day .problem {
+    margin: 0;
+}
+
+.parents-day__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+}
+
+.parents-day__range {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.parents-day__booking {
+    margin: -0.5rem 0 1rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.parents-day__day {
+    margin: 1.25rem 0 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+}
+
+.parents-day__day:first-of-type {
+    margin-top: 0;
+}
+
+.appointments {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+}
+
+.appointment {
+    display: grid;
+    grid-template-columns: 3.75rem 1fr;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--rule);
+}
+
+.appointment:first-child {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.appointment__time {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+}
+
+.appointment__start {
+    font-size: 1.3125rem;
+    font-weight: 550;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.appointment__end {
+    font-size: 0.9375rem;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.appointment__body {
+    min-width: 0;
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--accent);
+}
+
+.appointment__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+}
+
+.appointment__teacher {
+    font-size: 1.1875rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.appointment__student {
+    flex: none;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+}
+
+.appointment__meta {
+    margin: 0.15rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.appointment__meta span {
+    margin-right: 0.9rem;
+}
+
+.appointment__meta span:last-child {
+    margin-right: 0;
+}
+
 /* Messages ------------------------------------------------------------- */
 
 .empty,

@@ -100,6 +100,18 @@ final class TimetableProvider
     }
 
     /**
+     * Open parent-teacher days (see UntisClient::getParentsDays()) with
+     * each student's own booked appointments. Not tied to a day: WebUntis
+     * lists whatever events the school currently has open.
+     *
+     * @return array{0: list<array{name: string, parents_days: list<ParentsDay>, error: ?string}>, 1: CacheInfo}
+     */
+    public function fetchParentsDays(): array
+    {
+        return $this->cachedGet('webuntis_dashboard.parentsdays', fn () => $this->fetchParentsDaysUncached());
+    }
+
+    /**
      * A result with at least one student's fetch failed is cached for much
      * less than a normal one - long enough that a real WebUntis outage does
      * not get hit on every single page load, short enough that a passing
@@ -431,6 +443,46 @@ final class TimetableProvider
             $lessons,
             static fn (Lesson $lesson) => !\in_array($tidy($lesson->subject), $hidden, true),
         ));
+    }
+
+    /**
+     * @return list<array{name: string, parents_days: list<ParentsDay>, error: ?string}>
+     */
+    private function fetchParentsDaysUncached(): array
+    {
+        /** @var array<string, UntisClient> $sessions */
+        $sessions = [];
+        $results = [];
+
+        try {
+            foreach ($this->config->students() as $student) {
+                $entry = ['name' => $student['name'], 'parents_days' => [], 'error' => null];
+
+                try {
+                    $accountId = $student['account'];
+                    $sessions[$accountId] ??= $this->connect($accountId);
+
+                    $entry['parents_days'] = $sessions[$accountId]->getParentsDays(
+                        isset($student['element_id']) ? (int) $student['element_id'] : null,
+                        isset($student['element_type']) ? (int) $student['element_type'] : null,
+                    );
+                } catch (UntisException $exception) {
+                    $this->logger->warning('WebUntis parent-day lookup failed for {student}: {message}', [
+                        'student' => $student['name'],
+                        'message' => $exception->getMessage(),
+                    ]);
+                    $entry['error'] = $exception->getMessage();
+                }
+
+                $results[] = $entry;
+            }
+        } finally {
+            foreach ($sessions as $session) {
+                $session->logout();
+            }
+        }
+
+        return $results;
     }
 
     /**

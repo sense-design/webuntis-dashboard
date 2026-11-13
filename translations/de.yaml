@@ -62,6 +62,14 @@ week:
     empty: 'Kein Unterricht.'
     pager: 'KW {number}'
 
+parents_day:
+    title: 'Elternsprechtag'
+    none: 'Zurzeit ist kein Sprechtag zur Anmeldung freigegeben.'
+    nothing_booked: 'Noch keine Termine gebucht.'
+    booking_until: 'Anmeldung möglich bis {deadline}'
+    range: '{from} – {to}'
+    room: 'Raum {room}'
+
 admin:
     title: 'Einstellungen'
     back: 'Zurück zum Dashboard'
@@ -82,6 +90,7 @@ admin:
     feature_exams: 'Prüfungen'
     feature_free_periods: 'Freistunden-Markierungen'
     feature_absences: 'Fehlzeiten'
+    feature_parents_day: 'Elternsprechtag'
     hide_subjects: 'Fächer ausblenden'
     hide_subjects_hint: 'Fächer, die WebUntis für dieses Kind in den nächsten zwei Wochen listet. Die ankreuzen, die nicht im Dashboard auftauchen sollen, z.B. ein paralleler Kurs im Jahrgang, den dieses Kind nicht besucht.'
     hide_subjects_none: 'Noch keine Fächer gefunden.'
@@ -95,6 +104,7 @@ nav:
     homework: 'Hausaufgaben'
     exams: 'Prüfungen'
     absences: 'Fehlzeiten'
+    parents_day: 'Sprechtag'
 
 header:
     pager: 'Tag wechseln'

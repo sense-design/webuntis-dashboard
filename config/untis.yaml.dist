@@ -34,6 +34,8 @@ refresh_seconds: 600
 #     homework: false
 #     exams: false
 #     free_periods: false
+#     absences: false
+#     parents_day: false
 
 # Token that unlocks the /setup/<account-id> helper: call it as
 # /setup/<account-id>?token=<this value>. Without a match the route 404s.

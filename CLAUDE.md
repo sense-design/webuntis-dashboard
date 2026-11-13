@@ -31,11 +31,12 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   on purpose: once gated by that media query for the system-follows case,
   once under `:root[data-theme="dark"]` for the pinned case — keep both in
   sync when a token's dark value changes.
-- Optional features (homework, exams, absences, free-period markers) are on
+- Optional features (homework, exams, absences, parent-teacher day,
+  free-period markers) are on
   by default and switched off individually via `features.<name>` in
   `untis.yaml`, or from `/admin`, read through `ConfigLoader::<name>Enabled()`.
   A disabled view route 404s (see
-  `DashboardController::homework()`/`exams()`/`absences()`) rather than
+  `DashboardController::homework()`/`exams()`/`absences()`/`parentsDay()`) rather than
   rendering empty; a disabled display-only feature (free periods) just
   renders without it. A new optional feature should follow the same shape.
   The week view (`/week`) is deliberately not one of these: it is a display
@@ -240,6 +241,23 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   `-8509: no right for getTeachers()` from live testing). A username that is
   not a teacher (a school admin login, say) has no timetable entry to
   resolve from and is left exactly as WebUntis returned it.
+- The parent-teacher day ("Elternsprechtag"/"LET", `/parents-day`) has no
+  documented API. `UntisClient::getParentsDays()` reads what the web UI's
+  own parent-day page reads: JSON-RPC `jsonrpc_web/jsonParentsDayService`,
+  `getParentsDayMetaData`/`getParentTimeSlots` with params
+  `[parentsDayId, -1]`. That service, unlike `jsonrpc.do`, 403s ("Access
+  denied" HTML) without the session's `X-CSRF-TOKEN`, which is scraped from
+  `"csrfToken":"..."` in `index.do` (`csrfToken()`, once per session). The
+  event ids themselves are only on the legacy start page `main.do`, as
+  `loadContent('parentsday/parentview?selId=<id>')` links - no JSON source
+  for them is known - so no such link just means no events, not an error.
+  The same service also books and cancels appointments
+  (`saveAppointment`, `cancelAppointment`, ...); never call anything but the
+  read methods from here. The view is deliberately one merged timeline
+  across all students (grouped by event, then day, sorted by time, each
+  appointment tagged with its child's name and accent) rather than the
+  per-student columns every other view uses - parents need the order to
+  walk from one teacher to the next, not one list per child.
 - `public/403.html` is wired up via `error_page 403 /403.html;` in both
   nginx configs, for the IP allowlist and dotfile-block `deny all` rules.
   It is served by nginx directly, before PHP-FPM is ever reached, so it
