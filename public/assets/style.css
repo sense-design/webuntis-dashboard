@@ -814,13 +814,15 @@ body {
 
 .views {
     display: flex;
-    gap: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
     margin-top: 1rem;
     font-size: 0.9375rem;
 }
 
 .views__link {
     padding-bottom: 0.15rem;
+    white-space: nowrap;
     color: var(--muted);
     text-decoration: none;
     border-bottom: 2px solid transparent;
@@ -834,6 +836,84 @@ body {
     color: var(--ink);
     font-weight: 600;
     border-bottom-color: var(--ink);
+}
+
+.views__icon,
+.views__label--short {
+    display: none;
+}
+
+/* On narrow screens the main nav becomes a bottom tab bar, app-style: five
+   equal cells, icon above a short label, in thumb reach. The safe-area
+   insets (viewport-fit=cover on the dashboard's viewport meta) keep it
+   clear of the iPhone home indicator and, in landscape, the notch. */
+@media (max-width: 40rem) {
+    .dashboard {
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
+    .views {
+        position: fixed;
+        z-index: 10;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        flex-wrap: nowrap;
+        gap: 0;
+        margin: 0;
+        padding: 0.35rem max(0.25rem, env(safe-area-inset-right)) calc(0.35rem + env(safe-area-inset-bottom)) max(0.25rem, env(safe-area-inset-left));
+        background: var(--card);
+        border-top: 1px solid var(--rule);
+        font-size: 0.6875rem;
+    }
+
+    .views__link {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+        min-width: 0;
+        padding: 0.3rem 0.1rem;
+        border-bottom: 0;
+        border-radius: 0.5rem;
+    }
+
+    .views__link--active {
+        border-bottom: 0;
+    }
+
+    .views__icon {
+        display: block;
+        width: 1.5rem;
+        height: 1.5rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.75;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .views__link--active .views__icon {
+        stroke-width: 2.25;
+    }
+
+    .views__label {
+        display: none;
+    }
+
+    .views__label--short {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .views__link:focus-visible {
+        outline-offset: -2px;
+    }
 }
 
 /* Header pager ---------------------------------------------------------- */
@@ -1065,7 +1145,7 @@ body {
 
 @media (max-width: 30rem) {
     .dashboard {
-        padding: 1.75rem 1rem 2.5rem;
+        padding-top: 1.75rem;
     }
 
     .lesson {

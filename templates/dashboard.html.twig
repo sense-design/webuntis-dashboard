@@ -2,7 +2,7 @@
 <html lang="{{ locale }}"{% if theme != 'system' %} data-theme="{{ theme }}"{% endif %}>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     {% if refresh_seconds > 0 %}<meta http-equiv="refresh" content="{{ refresh_seconds }}">{% endif %}
     <title>
         {%- if view == 'homework' -%}
@@ -62,29 +62,20 @@
             {%- endif -%}
         </h1>
 
+        {% import _self as nav %}
         <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}{{ absences_enabled ? ' / ' ~ t('nav.absences') : '' }}{{ parents_day_enabled ? ' / ' ~ t('nav.parents_day') : '' }}">
-            <a class="views__link{{ view in ['timetable', 'week'] ? ' views__link--active' : '' }}"
-               href="{{ path('dashboard') }}"
-               {%- if view in ['timetable', 'week'] %} aria-current="page"{% endif %}>{{ t('nav.timetable') }}</a>
+            {{ nav.views_link(path('dashboard'), view in ['timetable', 'week'], 'timetable') }}
             {% if homework_enabled %}
-                <a class="views__link{{ view in ['homework', 'homework_done'] ? ' views__link--active' : '' }}"
-                   href="{{ path('homework') }}"
-                   {%- if view in ['homework', 'homework_done'] %} aria-current="page"{% endif %}>{{ t('nav.homework') }}</a>
+                {{ nav.views_link(path('homework'), view in ['homework', 'homework_done'], 'homework') }}
             {% endif %}
             {% if exams_enabled %}
-                <a class="views__link{{ view == 'exams' ? ' views__link--active' : '' }}"
-                   href="{{ path('exams') }}"
-                   {%- if view == 'exams' %} aria-current="page"{% endif %}>{{ t('nav.exams') }}</a>
+                {{ nav.views_link(path('exams'), view == 'exams', 'exams') }}
             {% endif %}
             {% if absences_enabled %}
-                <a class="views__link{{ view == 'absences' ? ' views__link--active' : '' }}"
-                   href="{{ path('absences') }}"
-                   {%- if view == 'absences' %} aria-current="page"{% endif %}>{{ t('nav.absences') }}</a>
+                {{ nav.views_link(path('absences'), view == 'absences', 'absences') }}
             {% endif %}
             {% if parents_day_enabled %}
-                <a class="views__link{{ view == 'parents_day' ? ' views__link--active' : '' }}"
-                   href="{{ path('parents_day') }}"
-                   {%- if view == 'parents_day' %} aria-current="page"{% endif %}>{{ t('nav.parents_day') }}</a>
+                {{ nav.views_link(path('parents_day'), view == 'parents_day', 'parents_day') }}
             {% endif %}
         </nav>
 
@@ -469,3 +460,22 @@
 </main>
 </body>
 </html>
+
+{# One main-nav tab. The icon only shows on narrow screens, where .views
+   turns into a bottom tab bar; the short label replaces the full one there
+   so five tabs fit side by side on a phone. #}
+{% macro views_link(href, active, key) %}
+    {%- set icons = {
+        timetable: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+        homework: '<rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 3h6v3H9zM9 13.5l2 2 4-4"/>',
+        exams: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+        absences: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+        parents_day: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 0 1 5 5"/>',
+    } -%}
+    <a class="views__link{{ active ? ' views__link--active' : '' }}" href="{{ href }}"
+       {%- if active %} aria-current="page"{% endif %}>
+        <svg class="views__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ icons[key]|raw }}</svg>
+        <span class="views__label">{{ t('nav.' ~ key) }}</span>
+        <span class="views__label views__label--short">{{ t('nav_short.' ~ key) }}</span>
+    </a>
+{%- endmacro %}

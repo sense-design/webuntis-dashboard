@@ -48,6 +48,17 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   their own `.subviews` pair ("Tag"/"Woche"), the same component homework's
   Offen/Erledigt split and `/admin`'s Settings/Fächer split already use -
   keeps the main nav from growing a tab per timetable display mode.
+- Below `40rem` the main nav (`.views`) turns into a fixed bottom tab bar
+  (icon above a short label, equal-width cells) instead of a burger menu.
+  Every tab goes through the `views_link` macro at the end of
+  `dashboard.html.twig`, so a new tab needs three things: an entry in that
+  macro's `icons` map (inline SVG paths, stroked with `currentColor` - no
+  literal colours), its `nav.<key>` label, and a `nav_short.<key>` label in
+  both `en.yaml` and `de.yaml` (the one shown in the bar; keep it short
+  enough for one-fifth of a phone's width). The bar relies on
+  `viewport-fit=cover` in the dashboard's viewport meta for its
+  `env(safe-area-inset-*)` padding - without it the insets are always zero
+  and the bar sits under the iPhone home indicator.
 - `config/untis.yaml` is never written to by the app, only read. Anything a
   user should be able to change at runtime (`/admin`) is layered on top of it
   from `var/settings.yaml` instead, via `ConfigLoader::saveSettings()` /

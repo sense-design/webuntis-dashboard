@@ -106,6 +106,14 @@ nav:
     absences: 'Absences'
     parents_day: 'Parents'' day'
 
+# Shorter labels for the bottom tab bar on narrow screens.
+nav_short:
+    timetable: 'Timetable'
+    homework: 'Homework'
+    exams: 'Exams'
+    absences: 'Absences'
+    parents_day: 'Parents'
+
 header:
     pager: 'Change day'
 
