@@ -276,7 +276,10 @@
                             <div class="week__day">
                                 <h3 class="week__day-label">{{ day.label }}</h3>
                                 {% set dayLessons = student.by_date[day.date] %}
-                                {% if dayLessons is empty %}
+                                {% set holiday = student.holidays[day.date] ?? null %}
+                                {% if dayLessons is empty and holiday is not null %}
+                                    <p class="week__empty">{{ holiday ?: t('holiday') }}</p>
+                                {% elseif dayLessons is empty %}
                                     <p class="week__empty">{{ t('week.empty') }}</p>
                                 {% else %}
                                     <ol class="week__lessons">
@@ -302,6 +305,8 @@
                             </div>
                         {% endfor %}
                     </div>
+                {% elseif student.lessons is empty and student.holiday is not null %}
+                    <p class="empty">{{ student.holiday ?: t('holiday') }}</p>
                 {% elseif student.lessons is empty %}
                     <p class="empty">{{ t('student.empty') }}</p>
                 {% else %}

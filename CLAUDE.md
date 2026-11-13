@@ -140,6 +140,16 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   on the day heading itself - colouring the date text there tried that and
   turned out to be low-contrast and hard to read, so today's column in the
   week view looks like any other.
+- A holiday day comes back from `getTimetable` as simply no rows, the same
+  as any other empty day. The holiday itself is a separate jsonrpc.do
+  method, `getHolidays` (school-wide, whole list, no date params), which
+  `TimetableProvider` only calls once some student actually has a
+  lesson-free day (once per account per fetch), so an ordinary school day
+  costs no extra request. A failing holiday lookup is logged and dropped,
+  not turned into a student error. Single days off are often entered with
+  only a date as their name (`"9.11."` / longName `"9.11.2026"`);
+  `UntisClient::getHolidays()` blanks those to `''` and the template falls
+  back to the generic `holiday` label ("Ferien") for them.
 - The "current lesson" marker (`entry.current`, set in
   `DashboardController::withFreePeriods()`) is computed once at render time
   from `$now` (only non-null when `$isToday`, since "now" means nothing on

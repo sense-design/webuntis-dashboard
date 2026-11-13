@@ -27,7 +27,11 @@ final class TimetableProvider
     }
 
     /**
-     * @return array{0: list<array{name: string, lessons: list<Lesson>, error: ?string}>, 1: CacheInfo}
+     * `holiday` is only ever set for a student with no lessons that day:
+     * null for an ordinary empty day, otherwise the holiday's name ('' when
+     * WebUntis only has a date for it, see UntisClient::getHolidays()).
+     *
+     * @return array{0: list<array{name: string, lessons: list<Lesson>, holiday: ?string, error: ?string}>, 1: CacheInfo}
      */
     public function fetchDay(\DateTimeInterface $day): array
     {
@@ -44,7 +48,10 @@ final class TimetableProvider
      * the pager), the same way fetchDay() takes an exact day rather than
      * snapping one itself.
      *
-     * @return array{0: list<array{name: string, days: array<string, list<Lesson>>, error: ?string}>, 1: CacheInfo}
+     * `holidays` maps each lesson-free day that is a holiday to its name,
+     * the same way fetchDay()'s `holiday` does for a single day.
+     *
+     * @return array{0: list<array{name: string, days: array<string, list<Lesson>>, holidays: array<string, string>, error: ?string}>, 1: CacheInfo}
      */
     public function fetchWeek(\DateTimeInterface $monday): array
     {
@@ -242,17 +249,19 @@ final class TimetableProvider
     }
 
     /**
-     * @return list<array{name: string, lessons: list<Lesson>, error: ?string}>
+     * @return list<array{name: string, lessons: list<Lesson>, holiday: ?string, error: ?string}>
      */
     private function fetchUncached(\DateTimeInterface $day): array
     {
         /** @var array<string, UntisClient> $sessions */
         $sessions = [];
+        /** @var array<string, list<array{name: string, start: string, end: string}>> $holidays */
+        $holidays = [];
         $results = [];
 
         try {
             foreach ($this->config->students() as $student) {
-                $entry = ['name' => $student['name'], 'lessons' => [], 'error' => null];
+                $entry = ['name' => $student['name'], 'lessons' => [], 'holiday' => null, 'error' => null];
 
                 try {
                     $accountId = $student['account'];
@@ -265,6 +274,11 @@ final class TimetableProvider
                     );
 
                     $entry['lessons'] = $this->withoutHiddenSubjects($student['name'], $lessons);
+
+                    if ([] === $lessons) {
+                        $holidays[$accountId] ??= $this->holidays($sessions[$accountId]);
+                        $entry['holiday'] = $this->holidayOn($holidays[$accountId], $day->format('Y-m-d'));
+                    }
                 } catch (UntisException $exception) {
                     $this->logger->warning('WebUntis lookup failed for {student}: {message}', [
                         'student' => $student['name'],
@@ -285,17 +299,19 @@ final class TimetableProvider
     }
 
     /**
-     * @return list<array{name: string, days: array<string, list<Lesson>>, error: ?string}>
+     * @return list<array{name: string, days: array<string, list<Lesson>>, holidays: array<string, string>, error: ?string}>
      */
     private function fetchWeekUncached(\DateTimeInterface $monday, \DateTimeInterface $friday): array
     {
         /** @var array<string, UntisClient> $sessions */
         $sessions = [];
+        /** @var array<string, list<array{name: string, start: string, end: string}>> $holidays */
+        $holidays = [];
         $results = [];
 
         try {
             foreach ($this->config->students() as $student) {
-                $entry = ['name' => $student['name'], 'days' => [], 'error' => null];
+                $entry = ['name' => $student['name'], 'days' => [], 'holidays' => [], 'error' => null];
 
                 try {
                     $accountId = $student['account'];
@@ -307,6 +323,19 @@ final class TimetableProvider
                         isset($student['element_id']) ? (int) $student['element_id'] : null,
                         isset($student['element_type']) ? (int) $student['element_type'] : null,
                     );
+
+                    for ($date = \DateTimeImmutable::createFromInterface($monday); $date <= $friday; $date = $date->modify('+1 day')) {
+                        $key = $date->format('Y-m-d');
+                        if (isset($days[$key])) {
+                            continue;
+                        }
+
+                        $holidays[$accountId] ??= $this->holidays($sessions[$accountId]);
+                        $name = $this->holidayOn($holidays[$accountId], $key);
+                        if (null !== $name) {
+                            $entry['holidays'][$key] = $name;
+                        }
+                    }
 
                     foreach ($days as $date => $lessons) {
                         $days[$date] = $this->withoutHiddenSubjects($student['name'], $lessons);
@@ -330,6 +359,52 @@ final class TimetableProvider
         }
 
         return $results;
+    }
+
+    /**
+     * The school's holiday list, fetched at most once per account per fetch
+     * and only once some student actually has a lesson-free day, so an
+     * ordinary school day costs no extra request. A failure here (a school
+     * that denies the method, say) only loses the holiday label - the day
+     * then reads as a plain "no lessons" again - rather than turning an
+     * otherwise successful timetable fetch into an error.
+     *
+     * @return list<array{name: string, start: string, end: string}>
+     */
+    private function holidays(UntisClient $session): array
+    {
+        try {
+            return $session->getHolidays();
+        } catch (UntisException $exception) {
+            $this->logger->warning('WebUntis holiday lookup failed: {message}', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * Name of the holiday covering $date (Y-m-d), '' for one WebUntis has
+     * no real name for, or null when $date is not a holiday at all. Entries
+     * can overlap (a named break plus a single date-only day inside it), so
+     * a real name wins over a date-only one.
+     *
+     * @param list<array{name: string, start: string, end: string}> $holidays
+     */
+    private function holidayOn(array $holidays, string $date): ?string
+    {
+        $found = null;
+        foreach ($holidays as $holiday) {
+            if ($holiday['start'] <= $date && $date <= $holiday['end']) {
+                if ('' !== $holiday['name']) {
+                    return $holiday['name'];
+                }
+                $found = '';
+            }
+        }
+
+        return $found;
     }
 
     /**

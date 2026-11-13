@@ -21,6 +21,8 @@ student:
     error: 'No timetable available. {message}'
     empty: 'No lessons scheduled for today.'
 
+holiday: 'School holiday'
+
 lesson:
     cancelled: 'cancelled'
     substitution: 'Substitution'

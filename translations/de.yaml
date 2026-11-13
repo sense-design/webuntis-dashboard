@@ -21,6 +21,8 @@ student:
     error: 'Kein Plan abrufbar. {message}'
     empty: 'Für heute ist kein Unterricht eingetragen.'
 
+holiday: 'Ferien'
+
 lesson:
     cancelled: 'fällt aus'
     substitution: 'Vertretung'

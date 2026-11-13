@@ -552,6 +552,48 @@ final class UntisClient
     }
 
     /**
+     * Every holiday the school has entered in WebUntis (the jsonrpc.do
+     * getHolidays method): proper breaks ("Herbstferien") as well as single
+     * days off, inclusive start/end as Y-m-d. School-wide, not per student.
+     *
+     * The `name` handed back is WebUntis' `longName`, or '' when that is
+     * only a date - schools often enter single days off as name "9.11." /
+     * longName "9.11.2026" or "Ferien1" / "8.2.2027-8.2.2027", which is no
+     * better than the dashboard's own generic "holiday" label.
+     *
+     * @return list<array{name: string, start: string, end: string}>
+     */
+    public function getHolidays(): array
+    {
+        $result = $this->call('jsonrpc.do', [
+            'id' => 'webuntis-dashboard',
+            'method' => 'getHolidays',
+            'params' => new \stdClass(),
+            'jsonrpc' => '2.0',
+        ]);
+
+        $holidays = [];
+        foreach ($result as $row) {
+            if (!\is_array($row) || !isset($row['startDate'], $row['endDate'])) {
+                continue;
+            }
+
+            $name = trim((string) ($row['longName'] ?? $row['name'] ?? ''));
+            if (preg_match('/^\d{1,2}\.\d{1,2}\./', $name)) {
+                $name = '';
+            }
+
+            $holidays[] = [
+                'name' => $name,
+                'start' => $this->parseDateStamp((int) $row['startDate'])->format('Y-m-d'),
+                'end' => $this->parseDateStamp((int) $row['endDate'])->format('Y-m-d'),
+            ];
+        }
+
+        return $holidays;
+    }
+
+    /**
      * Absences on record for the account's student, on or after $from and
      * before $to, most recent first.
      *
