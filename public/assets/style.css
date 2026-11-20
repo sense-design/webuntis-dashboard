@@ -989,6 +989,30 @@ body {
     color: var(--muted);
 }
 
+/* "Refresh now" is a POST form (it clears the cache, so not a plain link)
+   but should read like the footer's other links: no button chrome. It sits
+   on its own line under "Fetched at ..." rather than behind a middot in the
+   same line - on a phone that line wraps, leaving the dot dangling at the
+   end of the first line and the centred text visibly off-centre. */
+.site-foot__refresh {
+    margin: 0.25rem 0 0;
+}
+
+.site-foot__refresh button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--ink);
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.site-foot__refresh button:hover,
+.site-foot__refresh button:focus-visible {
+    text-decoration: underline;
+}
+
 /* .site-foot__admin needs no margin of its own: it sits right after its own
    <hr class="site-foot__rule">, which already carries the spacing. The
    tagline and the meta line below it are one visual block with no rule

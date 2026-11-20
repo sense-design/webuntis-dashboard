@@ -16,6 +16,7 @@ use App\Untis\ParentsDay;
 use App\Untis\ParentsDayAppointment;
 use App\Untis\TimetableProvider;
 use App\Untis\UntisException;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Asset\Packages;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -41,6 +42,7 @@ final class DashboardController extends AbstractController
         private readonly Translator $translator,
         private readonly HomeworkTracker $homeworkTracker,
         private readonly Packages $assets,
+        private readonly CacheItemPoolInterface $cache,
     ) {
     }
 
@@ -289,6 +291,32 @@ final class DashboardController extends AbstractController
         $this->homeworkTracker->markDone($id);
 
         return $this->redirectToRoute('homework');
+    }
+
+    /**
+     * "Refresh now" in the footer: drops every cached WebUntis result so the
+     * page it was pressed on is fetched fresh, instead of waiting out
+     * cache_ttl for a short-notice change (a cancellation, a room swap) to
+     * show up. Clears the whole pool rather than just the current view's key
+     * - simpler, and the other views would otherwise still show the old
+     * state the user just asked to get rid of. Not token-gated, same
+     * reasoning as ticking homework off: everyday use for anyone who can
+     * load the dashboard.
+     *
+     * `back` is the page to return to; only a local path is accepted, so the
+     * form cannot be abused as an open redirect.
+     */
+    #[Route('/refresh', name: 'refresh', methods: ['POST'])]
+    public function refresh(Request $request): Response
+    {
+        $this->cache->clear();
+
+        $back = (string) $request->request->get('back', '');
+        if (!str_starts_with($back, '/') || str_starts_with($back, '//') || str_contains($back, '\\')) {
+            $back = $this->generateUrl('dashboard');
+        }
+
+        return $this->redirect($back);
     }
 
     /** Undoes markHomeworkDone(): the item goes back to "still open". */

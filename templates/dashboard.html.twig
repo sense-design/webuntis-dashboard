@@ -440,6 +440,10 @@
                 <a href="{{ path('dashboard') }}">{{ t('footer.today') }}</a>
             {% endif %}
         </p>
+        <form method="post" action="{{ path('refresh') }}" class="site-foot__refresh">
+            <input type="hidden" name="back" value="{{ app.request.requestUri }}">
+            <button type="submit">{{ t('footer.refresh') }}</button>
+        </form>
         {% if admin_token %}
             <hr class="site-foot__rule">
             <p class="site-foot__admin">

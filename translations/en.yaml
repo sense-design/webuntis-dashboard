@@ -120,6 +120,7 @@ header:
 footer:
     updated: 'Fetched at {time}'
     cached: 'cached, {minutes} min left'
+    refresh: 'Refresh now'
     today: 'Back to today'
     this_week: 'Back to this week'
     admin: 'Settings'

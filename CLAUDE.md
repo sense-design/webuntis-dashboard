@@ -96,6 +96,20 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   dashboard (already restricted at the network level, per the README) can
   tick a box, since this is meant for everyday use by the whole family, not
   a maintenance action.
+- "Refresh now" in the footer (`POST /refresh`,
+  `DashboardController::refresh()`) clears the whole cache pool, not just
+  the current view's key, so no other view keeps showing the stale state the
+  user just asked to get rid of - same as `AdminController::subjects()`
+  after a save. It is not token-gated either, same reasoning as marking
+  homework done: it exists so a short-notice change (cancellation, room
+  swap) shows up without waiting out `cache_ttl`, which is everyday use, not
+  maintenance. It is a POST form rather than a link because it changes
+  state; it returns to the page it was pressed on via a hidden `back` field
+  (`app.request.requestUri`), and `refresh()` only accepts a local path
+  there (leading `/`, no `//`, no backslash) so the form cannot become an
+  open redirect. The button sits on its own footer line under "Fetched at
+  ...", not behind a middot on the same line - on a phone that line wraps
+  and leaves the dot dangling, pulling the centred text off-centre.
 - `config/untis.yaml` and `var/` are never baked into the Docker image
   (`.dockerignore` + a belt-and-suspenders `rm` in the build stage for the
   former) - both are mounted at container start instead, same "credentials

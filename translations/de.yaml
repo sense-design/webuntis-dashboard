@@ -120,6 +120,7 @@ header:
 footer:
     updated: 'Abgerufen um {time}'
     cached: 'aus dem Cache, noch {minutes} Min. gültig'
+    refresh: 'Jetzt aktualisieren'
     today: 'Zurück zu heute'
     this_week: 'Zurück zu dieser Woche'
     admin: 'Einstellungen'
