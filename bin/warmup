@@ -1,0 +1,42 @@
+#!/usr/bin/env php
+<?php
+
+// Rebuilds var/cache/<env>/ (container, routes, compiled Twig templates) so
+// the first request after a deploy does not have to - what
+// `bin/console cache:warmup` would do, as a plain script for the same reason
+// bin/check-changes is one: no symfony/console dependency.
+//
+//   sudo -u www-data php bin/warmup
+//
+// Run it as the PHP-FPM user (bin/deploy does): the files it writes are the
+// ones PHP-FPM has to rewrite later, so warming up as anyone else leaves
+// var/cache/ unwritable for the site unless var/ has the ACLs from README.md.
+
+declare(strict_types=1);
+
+use App\Kernel;
+use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface;
+
+$root = dirname(__DIR__);
+require $root.'/vendor/autoload.php';
+
+(new Dotenv())->bootEnv($root.'/.env');
+
+$kernel = new Kernel((string) $_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG']);
+$kernel->boot();
+
+try {
+    $warmer = $kernel->getContainer()->get('cache_warmer');
+    $warmer->enableOptionalWarmers();
+    if ($kernel instanceof WarmableInterface) {
+        $kernel->warmUp($kernel->getCacheDir(), $kernel->getBuildDir());
+    }
+    $warmer->warmUp($kernel->getCacheDir(), $kernel->getBuildDir());
+    fwrite(\STDOUT, sprintf("Cache warmed up for \"%s\".\n", $kernel->getEnvironment()));
+} catch (\Throwable $exception) {
+    fwrite(\STDERR, sprintf("Cache warmup failed: %s\n", $exception->getMessage()));
+    exit(1);
+} finally {
+    $kernel->shutdown();
+}

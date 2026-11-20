@@ -116,6 +116,18 @@ query string (`App\Asset\MtimeVersionStrategy`). A deploy that touches
 of serving the old file for up to a week - no manual version bump, no build
 step.
 
+To update, run `bin/deploy` from the checkout as the user that owns it: it
+pulls, runs `composer install --no-dev`, clears `var/cache/` and warms it up
+again with `bin/warmup` as the PHP-FPM user (`sudo -u www-data`; set
+`WEB_USER` for another one), so the cache is never owned by the wrong user. Everything else in `var/` is kept. So that both you and PHP-FPM can
+write to `var/` without handing it back and forth with `chown`, give both
+users ACLs once:
+
+```bash
+sudo setfacl -dR -m u:www-data:rwX -m u:$(whoami):rwX var
+sudo setfacl -R  -m u:www-data:rwX -m u:$(whoami):rwX var
+```
+
 The IP allowlist and the dotfile block both `deny all`, which nginx answers
 with a 403; `public/403.html` replaces its stock error page with one in the
 app's own style. It is a plain static file nginx serves directly - no PHP,
@@ -390,6 +402,8 @@ src/I18n/Translator.php         Two-language message catalogue, no framework i18
 src/Twig/I18nExtension.php      The t() Twig function
 src/Twig/PushExtension.php      push_enabled() / push_public_key() for the footer toggle
 bin/check-changes               One change check; cron (bare metal) or the entrypoint loop (Docker)
+bin/deploy                      Bare-metal update: git pull, composer install, rebuild var/cache/
+bin/warmup                      Cache warmup without symfony/console (bin/console cache:warmup)
 translations/{en,de}.yaml      UI strings, English and German
 templates/dashboard.html.twig   The page
 templates/admin.html.twig       The settings form

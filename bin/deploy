@@ -1,0 +1,44 @@
+#!/bin/sh
+# Bare-metal update: pull, install production dependencies, rebuild the cache.
+#
+#   bin/deploy
+#
+# Run it from the checkout as the user that owns it (not root). Everything
+# else in var/ - admin settings, homework marks, the push key and
+# subscriptions - is left alone; only var/cache/ is cleared and warmed up
+# again (bin/warmup), so the first request does not pay for it.
+#
+# WEB_USER     PHP-FPM user (default www-data). The warmup always runs as this
+#              user, so the cache it writes stays writable for PHP-FPM; the
+#              clear falls back to it if this user cannot delete the files.
+# FPM_SERVICE  systemd unit to reload afterwards, e.g. php8.3-fpm. Only needed
+#              if OPcache runs with validate_timestamps=0.
+set -eu
+
+cd "$(dirname "$0")/.."
+web_user="${WEB_USER:-www-data}"
+
+if ! grep -qs '^APP_ENV=prod' .env.local; then
+    echo "Warning: .env.local does not set APP_ENV=prod - running in dev mode." >&2
+fi
+
+git pull --ff-only
+composer install --no-dev --optimize-autoloader --no-interaction
+
+mkdir -p var/cache
+if ! rm -rf var/cache/* 2>/dev/null; then
+    echo "Cannot clear var/cache as $(id -un), retrying as $web_user." >&2
+    sudo -u "$web_user" rm -rf var/cache/*
+fi
+
+if [ "$(id -un)" = "$web_user" ]; then
+    php bin/warmup
+else
+    sudo -u "$web_user" php bin/warmup
+fi
+
+if [ -n "${FPM_SERVICE:-}" ]; then
+    sudo systemctl reload "$FPM_SERVICE"
+fi
+
+echo "Deployed $(git rev-parse --short HEAD)."

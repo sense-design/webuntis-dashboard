@@ -124,7 +124,8 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   subscribe again). `bin/check-changes` is a plain script booting the kernel
   rather than a console command, so there is no `symfony/console` (and its
   `symfony/string`) dependency - which is why `ChangeNotifier` is the one
-  `public: true` service. It runs from cron as the PHP-FPM user on bare
+  `public: true` service. `bin/warmup` (called by `bin/deploy`) is a
+  plain script for the same reason, standing in for `cache:warmup`. It runs from cron as the PHP-FPM user on bare
   metal and from a loop in `docker/entrypoint.sh` in the container, and
   does nothing (no WebUntis request) while nobody is subscribed.
   `ChangeNotifier` diffs against its own last snapshot
