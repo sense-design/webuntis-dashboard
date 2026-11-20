@@ -1013,6 +1013,38 @@ body {
     text-decoration: underline;
 }
 
+/* The notification toggle (assets/push.js) reads like "Refresh now" right
+   above it: a footer link, not a button. Its status line underneath is
+   muted, the same as the rest of the footer text. */
+.site-foot__push {
+    margin: 0.25rem 0 0;
+}
+
+.push__toggle {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--ink);
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.push__toggle:hover,
+.push__toggle:focus-visible {
+    text-decoration: underline;
+}
+
+.push__toggle:disabled {
+    color: var(--muted);
+    cursor: default;
+}
+
+.site-foot .push__status {
+    max-width: 32rem;
+    margin: 0.25rem auto 0;
+}
+
 /* .site-foot__admin needs no margin of its own: it sits right after its own
    <hr class="site-foot__rule">, which already carries the spacing. The
    tagline and the meta line below it are one visual block with no rule

@@ -5,8 +5,8 @@ side. Built for a phone at breakfast or a small screen in the hallway: what is
 on today, and what changed.
 
 Symfony 7, PHP-FPM, nginx. No database, no queue, no build step. The only
-state - a filesystem cache, the admin-saved settings, and which homework is
-ticked off - lives under `var/`.
+state - a filesystem cache, the admin-saved settings, which homework is
+ticked off, and the push subscriptions with their key - lives under `var/`.
 
 | Timetable | Homework |
 | --- | --- |
@@ -162,6 +162,11 @@ docker run -d --name webuntis-dashboard \
     webuntis-dashboard
 ```
 
+The container also runs the timetable change check (`bin/check-changes`,
+see "Notifications on timetable changes") every five minutes in the
+background; set `CHECK_CHANGES_INTERVAL` (seconds, `0` to switch it off) in
+`.env.docker` to change that.
+
 The container serves plain HTTP; put TLS, basic auth or an IP allowlist on
 whatever reverse proxy sits in front of it, the same as the bare-metal setup
 above. Starting it without `config/untis.yaml` mounted fails fast with a clear
@@ -181,6 +186,7 @@ error instead of a confusing 500 on every request.
 | `features.absences` | `true` | Absences view and its header tab |
 | `features.free_periods` | `true` | Free-period markers in the timetable |
 | `features.parents_day` | `true` | Parent-teacher day view and its header tab |
+| `features.notifications` | `true` | Push notifications on timetable changes (see below) |
 
 Every feature defaults to on; set the ones you don't want under `features:` in
 `config/untis.yaml` (see `untis.yaml.dist`), or flip them from `/admin` (see
@@ -253,6 +259,60 @@ All views are linked from the header.
 The UI ships in English and German, set app-wide by `locale`. Strings live in
 `translations/en.yaml` and `translations/de.yaml`.
 
+## Notifications on timetable changes
+
+The footer has a "Notify me of timetable changes" toggle. Pressed on a
+phone or computer, that device gets a push notification whenever a lesson
+in the next seven days is cancelled (or simply disappears), is back on,
+moves to another room, gets another teacher, is cut short, is replaced by
+another subject, or is added - one notification per child, tapping it opens
+that day on the dashboard. A confirmation is pushed straight away when the
+toggle is switched on, so a setup problem shows up right then.
+
+This is plain [Web Push](https://www.rfc-editor.org/rfc/rfc8030), sent by
+this server itself - no notification service to sign up with, no account,
+no app to install:
+
+- The server's signing key (VAPID) is generated on first use and stays in
+  `var/push-vapid.pem`. Subscriptions are in `var/push-subscriptions.json`,
+  the last seen timetable in `var/push-state.json`.
+- The one thing that cannot be avoided is the browser vendor's own push
+  relay - every push to an iPhone goes through Apple, to Chrome through
+  Google, to Firefox through Mozilla; no website or app can reach a locked
+  phone any other way. The payload is end-to-end encrypted (RFC 8291) with
+  keys only this server and the subscribed browser hold, so the relay only
+  ever sees ciphertext and when it was sent.
+- iPhone/iPad (iOS 16.4 or later): Web Push only works for a page added to
+  the home screen. Add it via Share → Add to Home Screen, open it from
+  there, then use the toggle. In Safari itself the footer says so instead.
+
+The checking is done by `bin/check-changes`: each run fetches today plus
+the next seven days fresh from WebUntis (bypassing the cache), compares it
+with the previous run, and pushes whatever is new. A change is reported
+once, when it first appears, not on every run for as long as it stands. The
+first run after the first subscription, a new student, a day just entering
+the window, or a change to that student's hidden subjects only records a
+baseline. When a notification is sent the dashboard cache is cleared too, so
+the page it opens already shows the change. While nobody is subscribed (or
+`features.notifications` is off) a run exits without asking WebUntis
+anything.
+
+Run it every five minutes as the PHP-FPM user (it shares `var/` with the
+web app) - bare metal, in that user's crontab:
+
+```
+*/5 * * * * cd /var/www/webuntis-dashboard && php bin/check-changes
+```
+
+The Docker image runs it on its own (see Docker above).
+
+Subscribing is not token-gated, the same as ticking off homework: anyone
+who can open the dashboard can ask to be told about changes. The subscribe
+endpoint only takes JSON (which another website cannot send without a CORS
+preflight this app never answers) and only stores endpoints at the known
+browser push services, so it cannot be used to make this server send
+requests anywhere else.
+
 ## Home screen
 
 The page carries a web app manifest (`/manifest.webmanifest`, a localised route)
@@ -296,7 +356,7 @@ The home screen label comes from `app.name` in the translation catalogues.
 ## Possible next steps
 
 - An iCal feed per student for the family calendar
-- Push on change: diff the cached day against a fresh fetch and send on delta
+- Per-device choice of which children to be notified about
 
 ## Layout
 
@@ -312,21 +372,29 @@ src/Untis/Exam.php              One upcoming exam
 src/Untis/Absence.php           One absence entry, past or ongoing
 src/Untis/ParentsDay.php        One open parent-teacher day, with a student's booked appointments
 src/Untis/ParentsDayAppointment.php     One booked parent-teacher slot
+src/Push/ChangeNotifier.php     Timetable diff against the last run, one push per child with changes
+src/Push/WebPush.php            VAPID + aes128gcm Web Push, openssl only, no library
+src/Push/SubscriptionStore.php  Subscribed browsers in var/, endpoint allowlist
 src/Asset/MtimeVersionStrategy.php      asset() cache-busting, keyed by file mtime
 src/Controller/DashboardController.php  Dashboard, week view, homework, exams, absences, parent-teacher day, manifest, /setup helper
 src/Controller/AdminController.php      /admin settings form and /admin/subjects, reads and saves via ConfigLoader
+src/Controller/PushController.php       /push/subscribe and /push/unsubscribe
 src/I18n/Translator.php         Two-language message catalogue, no framework i18n
 src/Twig/I18nExtension.php      The t() Twig function
+src/Twig/PushExtension.php      push_enabled() / push_public_key() for the footer toggle
+bin/check-changes               One change check; cron (bare metal) or the entrypoint loop (Docker)
 translations/{en,de}.yaml      UI strings, English and German
 templates/dashboard.html.twig   The page
 templates/admin.html.twig       The settings form
 templates/admin_subjects.html.twig      The hide_subjects form
 public/assets/style.css         The styles
+public/assets/push.js           The footer notification toggle, the app's only page script
+public/sw.js                    Service worker: shows pushes, opens the day on tap
 public/icon.svg                 Home screen / favicon source (PNGs generated from it)
 public/403.html                  Static error page for nginx's IP allowlist / dotfile-block denies
 Dockerfile                      Single image: nginx + PHP-FPM, composer install at build time
 docker/nginx.conf                       Container vhost, the plain-HTTP equivalent of docs/nginx.conf.example
-docker/entrypoint.sh                    Fixes up var/ ownership, fails fast without config/untis.yaml
+docker/entrypoint.sh                    Fixes up var/ ownership, fails fast without config/untis.yaml, runs the change check loop
 docker-compose.yml               Volumes + env_file wrapper around the image
 ```
 

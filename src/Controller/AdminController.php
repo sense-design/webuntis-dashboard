@@ -68,7 +68,7 @@ final class AdminController extends AbstractController
      * `hide_subjects` is untouched by this form - see subjects() - so it is
      * carried forward as-is rather than defaulting back to untis.yaml.
      *
-     * @return array{locale: string, theme: string, cache_ttl: int, refresh_seconds: int, features: array{homework: bool, exams: bool, free_periods: bool, absences: bool, parents_day: bool}, hide_subjects: array<string, list<string>>}
+     * @return array{locale: string, theme: string, cache_ttl: int, refresh_seconds: int, features: array{homework: bool, exams: bool, free_periods: bool, absences: bool, parents_day: bool, notifications: bool}, hide_subjects: array<string, list<string>>}
      */
     private function readSubmittedSettings(Request $request): array
     {
@@ -86,6 +86,7 @@ final class AdminController extends AbstractController
                 'free_periods' => $request->request->getBoolean('feature_free_periods'),
                 'absences' => $request->request->getBoolean('feature_absences'),
                 'parents_day' => $request->request->getBoolean('feature_parents_day'),
+                'notifications' => $request->request->getBoolean('feature_notifications'),
             ],
             'hide_subjects' => $this->config->allHiddenSubjects(),
         ];

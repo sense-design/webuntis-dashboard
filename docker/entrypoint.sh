@@ -17,4 +17,22 @@ mkdir -p /var/www/html/var
 chown -R www-data:www-data /var/www/html/var
 
 php-fpm -D
+
+# Timetable change notifications (bin/check-changes) - the container's
+# stand-in for the cron job a bare-metal install uses. Runs as www-data like
+# PHP-FPM, since both write to var/; busybox su keeps the environment, so
+# APP_SECRET and friends reach it the same way they reach PHP-FPM. Exits
+# straight away while nobody has subscribed, so it costs nothing then.
+# CHECK_CHANGES_INTERVAL=0 switches it off entirely.
+interval="${CHECK_CHANGES_INTERVAL:-300}"
+if [ "$interval" -gt 0 ] 2>/dev/null; then
+    su -s /bin/sh www-data -c "
+        cd /var/www/html
+        while true; do
+            php bin/check-changes
+            sleep $interval
+        done
+    " &
+fi
+
 exec nginx -g 'daemon off;'

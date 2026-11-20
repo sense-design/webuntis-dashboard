@@ -62,6 +62,21 @@ final class TimetableProvider
     }
 
     /**
+     * Every configured student's lessons from $from to $to (inclusive),
+     * grouped by date the same way fetchWeek() does - but always fresh from
+     * WebUntis and never cached, and without the holiday lookup. This is the
+     * change notifier's view (App\Push\ChangeNotifier): it has to see what
+     * WebUntis says right now rather than an up to cache_ttl old copy, and
+     * has no use for holiday names.
+     *
+     * @return list<array{name: string, days: array<string, list<Lesson>>, holidays: array<string, string>, error: ?string}>
+     */
+    public function fetchRangeFresh(\DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        return $this->fetchWeekUncached($from, $to, false);
+    }
+
+    /**
      * Open homework for every configured student, newest due date last. Not
      * tied to a day: WebUntis is asked for a window around today and the
      * client keeps whatever is still outstanding.
@@ -313,7 +328,7 @@ final class TimetableProvider
     /**
      * @return list<array{name: string, days: array<string, list<Lesson>>, holidays: array<string, string>, error: ?string}>
      */
-    private function fetchWeekUncached(\DateTimeInterface $monday, \DateTimeInterface $friday): array
+    private function fetchWeekUncached(\DateTimeInterface $monday, \DateTimeInterface $friday, bool $withHolidays = true): array
     {
         /** @var array<string, UntisClient> $sessions */
         $sessions = [];
@@ -336,7 +351,7 @@ final class TimetableProvider
                         isset($student['element_type']) ? (int) $student['element_type'] : null,
                     );
 
-                    for ($date = \DateTimeImmutable::createFromInterface($monday); $date <= $friday; $date = $date->modify('+1 day')) {
+                    for ($date = \DateTimeImmutable::createFromInterface($monday); $withHolidays && $date <= $friday; $date = $date->modify('+1 day')) {
                         $key = $date->format('Y-m-d');
                         if (isset($days[$key])) {
                             continue;

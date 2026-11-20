@@ -17,6 +17,7 @@ services:
             - '../src/Untis/Person.php'
             - '../src/Untis/Totp.php'
             - '../src/Untis/UntisException.php'
+            - '../src/Push/Subscription.php'
             # Built per account by TimetableProvider, not by the container.
             - '../src/Untis/UntisClient.php'
 
@@ -28,6 +29,21 @@ services:
     App\Untis\HomeworkTracker:
         arguments:
             $file: '%untis.homework_done_file%'
+
+    App\Push\WebPush:
+        arguments:
+            $keyFile: '%kernel.project_dir%/var/push-vapid.pem'
+
+    App\Push\SubscriptionStore:
+        arguments:
+            $file: '%kernel.project_dir%/var/push-subscriptions.json'
+
+    # Public so bin/check-changes can fetch it from the container directly -
+    # there is no symfony/console here to wire a command through.
+    App\Push\ChangeNotifier:
+        public: true
+        arguments:
+            $stateFile: '%kernel.project_dir%/var/push-state.json'
 
     App\I18n\Translator:
         arguments:

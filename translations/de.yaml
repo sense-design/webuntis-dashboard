@@ -91,6 +91,7 @@ admin:
     feature_free_periods: 'Freistunden-Markierungen'
     feature_absences: 'Fehlzeiten'
     feature_parents_day: 'Elternsprechtag'
+    feature_notifications: 'Benachrichtigungen bei Planänderungen'
     hide_subjects: 'Fächer ausblenden'
     hide_subjects_hint: 'Fächer, die WebUntis für dieses Kind in den nächsten zwei Wochen listet. Die ankreuzen, die nicht im Dashboard auftauchen sollen, z.B. ein paralleler Kurs im Jahrgang, den dieses Kind nicht besucht.'
     hide_subjects_none: 'Noch keine Fächer gefunden.'
@@ -128,6 +129,29 @@ footer:
     source: 'Quellcode auf GitHub'
     author: 'von {name}'
     license: 'MIT-Lizenz'
+
+push:
+    enable: 'Bei Planänderungen benachrichtigen'
+    disable: 'Benachrichtigungen ausschalten'
+    enabled: 'Dieses Gerät bekommt eine Nachricht, sobald sich der Stundenplan ändert.'
+    denied: 'Benachrichtigungen sind für diese Seite blockiert. Sie lassen sich in den Browser- bzw. Systemeinstellungen wieder erlauben.'
+    failed: 'Das hat nicht geklappt. Bitte später noch einmal versuchen.'
+    unsupported: 'Dieser Browser kann keine Benachrichtigungen empfangen. Auf dem iPhone die Seite zuerst über „Teilen → Zum Home-Bildschirm“ hinzufügen und von dort öffnen.'
+    test_title: 'Benachrichtigungen sind aktiv'
+    test_body: 'Ab jetzt kommt hier eine Nachricht, sobald sich der Stundenplan ändert.'
+    title: '{name}: Stundenplan geändert'
+    line: '{day} {time} {subject}: {change}'
+    more: '… und {count} weitere Änderungen'
+    today: 'Heute'
+    tomorrow: 'Morgen'
+    cancelled: 'entfällt'
+    reinstated: 'findet doch statt'
+    added: 'zusätzlich'
+    replaced: 'statt {from}'
+    room: 'Raum {to} statt {from}'
+    room_new: 'Raum {to}'
+    teacher: 'Vertretung durch {to}'
+    shortened: 'nur bis {to} statt bis {from}'
 
 weekdays:
     1: Montag

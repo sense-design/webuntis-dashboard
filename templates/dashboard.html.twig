@@ -444,6 +444,25 @@
             <input type="hidden" name="back" value="{{ app.request.requestUri }}">
             <button type="submit">{{ t('footer.refresh') }}</button>
         </form>
+        {% if push_enabled() %}
+            {# Hidden until assets/push.js has checked the browser can do Web
+               Push at all - without JavaScript there is nothing to toggle. #}
+            <div class="site-foot__push push" data-push hidden
+                 data-key="{{ push_public_key() }}"
+                 data-worker="/sw.js"
+                 data-subscribe-url="{{ path('push_subscribe') }}"
+                 data-unsubscribe-url="{{ path('push_unsubscribe') }}"
+                 data-enable="{{ t('push.enable') }}"
+                 data-disable="{{ t('push.disable') }}"
+                 data-enabled="{{ t('push.enabled') }}"
+                 data-denied="{{ t('push.denied') }}"
+                 data-failed="{{ t('push.failed') }}"
+                 data-unsupported="{{ t('push.unsupported') }}">
+                <button type="button" class="push__toggle" aria-pressed="false">{{ t('push.enable') }}</button>
+                <p class="push__status" aria-live="polite" hidden></p>
+            </div>
+            <script src="{{ asset('assets/push.js') }}" defer></script>
+        {% endif %}
         {% if admin_token %}
             <hr class="site-foot__rule">
             <p class="site-foot__admin">

@@ -32,7 +32,7 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   once under `:root[data-theme="dark"]` for the pinned case — keep both in
   sync when a token's dark value changes.
 - Optional features (homework, exams, absences, parent-teacher day,
-  free-period markers) are on
+  free-period markers, change notifications) are on
   by default and switched off individually via `features.<name>` in
   `untis.yaml`, or from `/admin`, read through `ConfigLoader::<name>Enabled()`.
   A disabled view route 404s (see
@@ -110,6 +110,34 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   open redirect. The button sits on its own footer line under "Fetched at
   ...", not behind a middot on the same line - on a phone that line wraps
   and leaves the dot dangling, pulling the centred text off-centre.
+- Change notifications are self-hosted Web Push, on purpose: no
+  notification service, account or library (`App\Push\WebPush` does VAPID
+  and RFC 8291 aes128gcm with the openssl extension alone). The browser
+  vendor's push relay (Apple/Google/Mozilla) is the one unavoidable hop and
+  only ever sees ciphertext - do not swap this for ntfy/Pushover/Telegram or
+  any other third-party service. The VAPID key is generated into
+  `var/push-vapid.pem` on first use; replacing it orphans every existing
+  subscription (`assets/push.js` detects a key mismatch and offers to
+  subscribe again). `bin/check-changes` is a plain script booting the kernel
+  rather than a console command, so there is no `symfony/console` (and its
+  `symfony/string`) dependency - which is why `ChangeNotifier` is the one
+  `public: true` service. It runs from cron as the PHP-FPM user on bare
+  metal and from a loop in `docker/entrypoint.sh` in the container, and
+  does nothing (no WebUntis request) while nobody is subscribed.
+  `ChangeNotifier` diffs against its own last snapshot
+  (`var/push-state.json`), not against WebUntis' "changed" flags, so each
+  change is pushed exactly once; anything never seen before (first run, new
+  student, day entering the window, changed `hide_subjects`) is baseline
+  only, and a student whose whole window comes back empty at once keeps the
+  old snapshot rather than pushing a wall of cancellations. It clears the
+  cache pool after sending, for the same reason `refresh()` does.
+  `/push/subscribe` is not token-gated (same reasoning as marking homework
+  done) but only accepts a JSON body (CSRF: needs a CORS preflight the app
+  never answers) and only endpoints at the known push services
+  (`SubscriptionStore::ALLOWED_HOST_SUFFIXES`, SSRF) - keep both.
+  `public/sw.js` must stay at the site root to control `/`, and is not
+  routed through `asset()`/`?v=` on purpose (browsers re-check a service
+  worker byte for byte themselves).
 - `config/untis.yaml` and `var/` are never baked into the Docker image
   (`.dockerignore` + a belt-and-suspenders `rm` in the build stage for the
   former) - both are mounted at container start instead, same "credentials
@@ -179,9 +207,10 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
 - The "current lesson" marker (`entry.current`, set in
   `DashboardController::withFreePeriods()`) is computed once at render time
   from `$now` (only non-null when `$isToday`, since "now" means nothing on
-  another day) and never ticks forward client-side - the app has no
-  JavaScript anywhere, so it only ever moves when the page reloads, the same
-  way `updated_at`/`from_cache` in the footer only move on a fetch. A gap
+  another day) and never ticks forward client-side - nothing in the page
+  script (`assets/push.js`, the notification toggle only) touches it, so it
+  only ever moves when the page reloads, the same way
+  `updated_at`/`from_cache` in the footer only move on a fetch. A gap
   entry only exists at all when it is at least `FREE_PERIOD_MINUTES` long, so
   ordinary passing time between two periods shows no marker either way - not
   a bug, there is no entry to mark it on.

@@ -167,6 +167,16 @@ final class ConfigLoader
     }
 
     /**
+     * Web Push on timetable changes (App\Push\ChangeNotifier). On by default
+     * like every other feature, but it only ever does anything once a
+     * browser has subscribed from the dashboard footer.
+     */
+    public function notificationsEnabled(): bool
+    {
+        return (bool) ($this->settings()['features']['notifications'] ?? $this->load()['features']['notifications'] ?? true);
+    }
+
+    /**
      * The effective `hide_subjects` list for one student, keyed by name: an
      * admin-saved override when there is one (even an empty list, meaning
      * "hide nothing"), otherwise whatever untis.yaml has for that student.
@@ -215,7 +225,7 @@ final class ConfigLoader
      * on the `/admin` form: saved overrides where they exist, the matching
      * untis.yaml value or built-in default otherwise.
      *
-     * @return array{locale: string, theme: string, cache_ttl: int, refresh_seconds: int, features: array{homework: bool, exams: bool, free_periods: bool, absences: bool, parents_day: bool}}
+     * @return array{locale: string, theme: string, cache_ttl: int, refresh_seconds: int, features: array{homework: bool, exams: bool, free_periods: bool, absences: bool, parents_day: bool, notifications: bool}}
      */
     public function currentSettings(): array
     {
@@ -230,6 +240,7 @@ final class ConfigLoader
                 'free_periods' => $this->freePeriodsEnabled(),
                 'absences' => $this->absencesEnabled(),
                 'parents_day' => $this->parentsDayEnabled(),
+                'notifications' => $this->notificationsEnabled(),
             ],
         ];
     }

@@ -91,6 +91,7 @@ admin:
     feature_free_periods: 'Free-period markers'
     feature_absences: 'Absences'
     feature_parents_day: 'Parent-teacher day'
+    feature_notifications: 'Notifications on timetable changes'
     hide_subjects: 'Hide subjects'
     hide_subjects_hint: 'Subjects WebUntis lists for this student over the next two weeks. Check the ones that should not show up on the dashboard, e.g. a parallel year-group course this student does not attend.'
     hide_subjects_none: 'No subjects found yet.'
@@ -128,6 +129,29 @@ footer:
     source: 'Source on GitHub'
     author: 'by {name}'
     license: 'MIT licensed'
+
+push:
+    enable: 'Notify me of timetable changes'
+    disable: 'Turn notifications off'
+    enabled: 'This device gets a notification as soon as the timetable changes.'
+    denied: 'Notifications are blocked for this site. They can be allowed again in the browser or system settings.'
+    failed: 'That did not work. Please try again later.'
+    unsupported: 'This browser cannot receive notifications. On an iPhone, add the page via "Share → Add to Home Screen" first and open it from there.'
+    test_title: 'Notifications are on'
+    test_body: 'From now on a notification shows up here as soon as the timetable changes.'
+    title: '{name}: timetable changed'
+    line: '{day} {time} {subject}: {change}'
+    more: '… and {count} more changes'
+    today: 'Today'
+    tomorrow: 'Tomorrow'
+    cancelled: 'cancelled'
+    reinstated: 'back on'
+    added: 'extra lesson'
+    replaced: 'instead of {from}'
+    room: 'room {to} instead of {from}'
+    room_new: 'room {to}'
+    teacher: 'covered by {to}'
+    shortened: 'ends at {to} instead of {from}'
 
 weekdays:
     1: Monday

@@ -1,0 +1,54 @@
+#!/usr/bin/env php
+<?php
+
+// One timetable change check (App\Push\ChangeNotifier): compares what
+// WebUntis says now against the last run and pushes whatever changed to
+// every browser subscribed from the dashboard footer.
+//
+// Run it every five minutes, as the same user PHP-FPM runs as (it writes to
+// var/ and shares var/cache/ with the web app), e.g. in that user's crontab:
+//
+//     */5 * * * * cd /var/www/webuntis-dashboard && php bin/check-changes
+//
+// docker/entrypoint.sh does this itself inside the container. A plain script
+// booting the kernel rather than a console command, so the app does not need
+// symfony/console (and symfony/string with it) for this one entry point.
+
+declare(strict_types=1);
+
+use App\Kernel;
+use App\Push\ChangeNotifier;
+use Symfony\Component\Dotenv\Dotenv;
+
+$root = dirname(__DIR__);
+require $root.'/vendor/autoload.php';
+
+(new Dotenv())->bootEnv($root.'/.env');
+
+// Two overlapping runs (a slow WebUntis, a short interval) would both diff
+// against the same snapshot and send every change twice.
+if (!is_dir($root.'/var')) {
+    mkdir($root.'/var', 0775, true);
+}
+$lock = fopen($root.'/var/push-check.lock', 'c');
+if (false === $lock || !flock($lock, \LOCK_EX | \LOCK_NB)) {
+    fwrite(\STDERR, "Another check is still running, skipping this one.\n");
+    exit(0);
+}
+
+$kernel = new Kernel((string) $_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG']);
+$kernel->boot();
+
+try {
+    /** @var ChangeNotifier $notifier */
+    $notifier = $kernel->getContainer()->get(ChangeNotifier::class);
+    $sent = $notifier->run();
+    if ($sent > 0) {
+        fwrite(\STDOUT, sprintf("[%s] %d notification(s) sent.\n", date('c'), $sent));
+    }
+} catch (\Throwable $exception) {
+    fwrite(\STDERR, sprintf("[%s] Change check failed: %s\n", date('c'), $exception->getMessage()));
+    exit(1);
+} finally {
+    $kernel->shutdown();
+}
