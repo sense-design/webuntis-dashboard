@@ -118,10 +118,11 @@ step.
 
 To update, run `bin/deploy` from the checkout as the user that owns it: it
 pulls, runs `composer install --no-dev`, clears `var/cache/` and warms it up
-again with `bin/warmup` as the PHP-FPM user (`sudo -u www-data`; set
-`WEB_USER` for another one), so the cache is never owned by the wrong user. Everything else in `var/` is kept. So that both you and PHP-FPM can
-write to `var/` without handing it back and forth with `chown`, give both
-users ACLs once:
+again with `bin/warmup`. Everything else in `var/` is kept. Give `var/` ACLs
+once so that both you and PHP-FPM can write to it - then `bin/deploy` needs
+no sudo at all. Without them it warms up via `sudo -u www-data` (set
+`WEB_USER` for another PHP-FPM user), so the cache never ends up owned by a
+user PHP-FPM cannot write as:
 
 ```bash
 sudo setfacl -dR -m u:www-data:rwX -m u:$(whoami):rwX var

@@ -8,9 +8,12 @@
 # subscriptions - is left alone; only var/cache/ is cleared and warmed up
 # again (bin/warmup), so the first request does not pay for it.
 #
-# WEB_USER     PHP-FPM user (default www-data). The warmup always runs as this
-#              user, so the cache it writes stays writable for PHP-FPM; the
-#              clear falls back to it if this user cannot delete the files.
+# No sudo needed once var/ has the ACLs from "Deployment" in README.md: then
+# whatever this user writes into var/cache/ stays writable for PHP-FPM too.
+# Without them the warmup runs via `sudo -u $WEB_USER`, so the cache never
+# ends up owned by a user PHP-FPM cannot write as.
+#
+# WEB_USER     PHP-FPM user (default www-data).
 # FPM_SERVICE  systemd unit to reload afterwards, e.g. php8.3-fpm. Only needed
 #              if OPcache runs with validate_timestamps=0.
 set -eu
@@ -25,17 +28,24 @@ fi
 git pull --ff-only
 composer install --no-dev --optimize-autoloader --no-interaction
 
+# Runs a command as the PHP-FPM user: directly if this already is that user
+# or var/cache/ carries a default ACL granting it write access, via sudo
+# otherwise.
+as_web_user() {
+    if [ "$(id -un)" = "$web_user" ] \
+        || getfacl -p var/cache 2>/dev/null | grep -q "^default:user:$web_user:rwx"; then
+        "$@"
+    else
+        sudo -u "$web_user" "$@"
+    fi
+}
+
 mkdir -p var/cache
 if ! rm -rf var/cache/* 2>/dev/null; then
     echo "Cannot clear var/cache as $(id -un), retrying as $web_user." >&2
     sudo -u "$web_user" rm -rf var/cache/*
 fi
-
-if [ "$(id -un)" = "$web_user" ]; then
-    php bin/warmup
-else
-    sudo -u "$web_user" php bin/warmup
-fi
+as_web_user php bin/warmup
 
 if [ -n "${FPM_SERVICE:-}" ]; then
     sudo systemctl reload "$FPM_SERVICE"
