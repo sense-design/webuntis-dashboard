@@ -152,6 +152,7 @@ push:
     room_new: 'room {to}'
     teacher: 'covered by {to}'
     shortened: 'ends at {to} instead of {from}'
+    simulated_room: 'test room'
 
 weekdays:
     1: Monday

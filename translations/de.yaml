@@ -152,6 +152,7 @@ push:
     room_new: 'Raum {to}'
     teacher: 'Vertretung durch {to}'
     shortened: 'nur bis {to} statt bis {from}'
+    simulated_room: 'Testraum'
 
 weekdays:
     1: Montag

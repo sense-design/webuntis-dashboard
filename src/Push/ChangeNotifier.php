@@ -51,8 +51,15 @@ final class ChangeNotifier
      * One full check. Returns the number of notifications that were sent
      * (one per student with changes, times the number of subscribed
      * browsers), for the caller to log.
+     *
+     * $simulate (bin/check-changes --simulate) is an end-to-end test from
+     * the server side: it pretends the first student's first lesson with a
+     * room on an upcoming day was in another room last time, so that run
+     * reports a room change. Only the comparison baseline is faked, in
+     * memory - what gets saved is the real snapshot, as on any other run, so
+     * the next regular run carries on normally and reports nothing extra.
      */
-    public function run(): int
+    public function run(bool $simulate = false): int
     {
         if (!$this->config->notificationsEnabled() || [] === $this->subscriptions->all()) {
             // Nobody to tell: do not poll WebUntis every few minutes for
@@ -74,6 +81,7 @@ final class ChangeNotifier
         $previous = $this->readState();
         $state = ['students' => []];
         $messages = [];
+        $simulated = false;
 
         foreach ($this->provider->fetchRangeFresh($today, $until) as $student) {
             $name = $student['name'];
@@ -109,6 +117,14 @@ final class ChangeNotifier
 
             $state['students'][$name] = $snapshot;
 
+            if ($simulate && !$simulated) {
+                $fake = $this->simulatedBaseline($old ?? $snapshot, $snapshot, $today->format('Y-m-d'));
+                if (null !== $fake) {
+                    $old = $fake;
+                    $simulated = true;
+                }
+            }
+
             if (null === $old || ($old['hidden'] ?? []) !== $snapshot['hidden']) {
                 continue;
             }
@@ -143,6 +159,37 @@ final class ChangeNotifier
         $this->cache->clear();
 
         return $this->broadcast($messages);
+    }
+
+    /**
+     * $baseline with one lesson of $snapshot - the first one after $today
+     * that has a room - put back in a made-up room, so diffing $snapshot
+     * against it yields exactly one room change. Null when the window has no
+     * such lesson (holidays), for run() to try the next student.
+     *
+     * @param array{hidden: list<string>, dates: array<string, array<string, array<string, mixed>>>} $baseline
+     * @param array{hidden: list<string>, dates: array<string, array<string, array<string, mixed>>>} $snapshot
+     *
+     * @return array{hidden: list<string>, dates: array<string, array<string, array<string, mixed>>>}|null
+     */
+    private function simulatedBaseline(array $baseline, array $snapshot, string $today): ?array
+    {
+        foreach ($snapshot['dates'] as $date => $lessons) {
+            if ($date <= $today) {
+                continue;
+            }
+            foreach ($lessons as $key => $lesson) {
+                if (!$lesson['cancelled'] && [] !== $lesson['rooms']) {
+                    $baseline['hidden'] = $snapshot['hidden'];
+                    $baseline['dates'][$date] = $lessons;
+                    $baseline['dates'][$date][$key]['rooms'] = [$this->translator->trans('push.simulated_room')];
+
+                    return $baseline;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

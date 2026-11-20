@@ -10,6 +10,11 @@
 //
 //     */5 * * * * cd /var/www/webuntis-dashboard && php bin/check-changes
 //
+// `php bin/check-changes --simulate` is a one-off end-to-end test: on top of
+// whatever really changed, it reports a made-up room change for the first
+// student's next lesson, so a notification arrives without waiting for the
+// school to change anything (see ChangeNotifier::run()).
+//
 // docker/entrypoint.sh does this itself inside the container. A plain script
 // booting the kernel rather than a console command, so the app does not need
 // symfony/console (and symfony/string with it) for this one entry point.
@@ -42,9 +47,12 @@ $kernel->boot();
 try {
     /** @var ChangeNotifier $notifier */
     $notifier = $kernel->getContainer()->get(ChangeNotifier::class);
-    $sent = $notifier->run();
+    $simulate = in_array('--simulate', array_slice($argv, 1), true);
+    $sent = $notifier->run($simulate);
     if ($sent > 0) {
         fwrite(\STDOUT, sprintf("[%s] %d notification(s) sent.\n", date('c'), $sent));
+    } elseif ($simulate) {
+        fwrite(\STDOUT, "Nothing sent: no browser is subscribed, notifications are switched off, or no upcoming lesson with a room was found.\n");
     }
 } catch (\Throwable $exception) {
     fwrite(\STDERR, sprintf("[%s] Change check failed: %s\n", date('c'), $exception->getMessage()));

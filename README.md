@@ -306,6 +306,13 @@ web app) - bare metal, in that user's crontab:
 
 The Docker image runs it on its own (see Docker above).
 
+To test the whole chain from the server side without waiting for a real
+change, run it once by hand with `--simulate` (as the PHP-FPM user, or
+`docker compose exec -u www-data webuntis-dashboard php bin/check-changes --simulate`):
+on top of anything that really changed, every subscribed device gets a
+made-up room change ("test room") for the first student's next lesson. Only
+the comparison is faked; the next regular run carries on normally.
+
 Subscribing is not token-gated, the same as ticking off homework: anyone
 who can open the dashboard can ask to be told about changes. The subscribe
 endpoint only takes JSON (which another website cannot send without a CORS
