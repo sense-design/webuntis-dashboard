@@ -2,15 +2,19 @@
   <title>WebUntis Dashboard</title>
   <rect width="512" height="512" fill="#0F6E5C"/>
   <g fill="#ffffff">
-    <circle cx="176" cy="150" r="19"/>
-    <rect x="214" y="134" width="138" height="32" rx="16"/>
-    <circle cx="176" cy="220" r="19"/>
-    <rect x="214" y="204" width="90" height="32" rx="16"/>
-    <circle cx="176" cy="290" r="19"/>
-    <rect x="214" y="274" width="118" height="32" rx="16"/>
+    <path d="M256 116 340 196V396H172V196z" stroke="#ffffff" stroke-width="16" stroke-linejoin="round"/>
+    <rect x="88" y="244" width="120" height="160" rx="16"/>
+    <rect x="304" y="244" width="120" height="160" rx="16"/>
   </g>
-  <g fill="#ffffff" fill-opacity="0.5">
-    <circle cx="176" cy="360" r="19"/>
-    <rect x="214" y="344" width="66" height="32" rx="16"/>
+  <g fill="#0F6E5C">
+    <rect x="172" y="244" width="8" height="160"/>
+    <rect x="332" y="244" width="8" height="160"/>
+    <circle cx="256" cy="228" r="38"/>
+    <path d="M228 404v-60a28 28 0 0 1 56 0v60z"/>
+    <rect x="114" y="276" width="40" height="40" rx="8"/>
+    <rect x="114" y="336" width="40" height="40" rx="8"/>
+    <rect x="358" y="276" width="40" height="40" rx="8"/>
+    <rect x="358" y="336" width="40" height="40" rx="8"/>
   </g>
+  <path d="M256 206v22h16" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
