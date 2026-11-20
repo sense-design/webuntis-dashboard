@@ -55,7 +55,10 @@ for the app itself (bare metal, per `docs/nginx.conf.example`, or the one-image
   macro's `icons` map (inline SVG paths, stroked with `currentColor` - no
   literal colours), its `nav.<key>` label, and a `nav_short.<key>` label in
   both `en.yaml` and `de.yaml` (the one shown in the bar; keep it short
-  enough for one-fifth of a phone's width). The bar relies on
+  enough for one-sixth of a phone's width - with every feature on plus
+  `admin_token` set, the bar holds six tabs; the settings tab (`admin`)
+  only appears when `admin_token` is set and is never the active one,
+  since `/admin` renders its own template). The bar relies on
   `viewport-fit=cover` in the dashboard's viewport meta for its
   `env(safe-area-inset-*)` padding - without it the insets are always zero
   and the bar sits under the iPhone home indicator.

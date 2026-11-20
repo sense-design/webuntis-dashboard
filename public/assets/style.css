@@ -843,8 +843,8 @@ body {
     display: none;
 }
 
-/* On narrow screens the main nav becomes a bottom tab bar, app-style: five
-   equal cells, icon above a short label, in thumb reach. The safe-area
+/* On narrow screens the main nav becomes a bottom tab bar, app-style: up
+   to six equal cells, icon above a short label, in thumb reach. The safe-area
    insets (viewport-fit=cover on the dashboard's viewport meta) keep it
    clear of the iPhone home indicator and, in landscape, the notch. */
 @media (max-width: 40rem) {
@@ -1013,11 +1013,13 @@ body {
     text-decoration: underline;
 }
 
-/* The notification toggle (assets/push.js) reads like "Refresh now" right
-   above it: a footer link, not a button. Its status line underneath is
-   muted, the same as the rest of the footer text. */
+/* The notification toggle (assets/push.js) reads like "Refresh now": a
+   footer link, not a button, but set apart from it by its own
+   .site-foot__rule (inside the box, so it hides along with it) - right
+   under "Refresh now" the two were too easy to mix up. Its status line
+   underneath is muted, the same as the rest of the footer text. */
 .site-foot__push {
-    margin: 0.25rem 0 0;
+    margin: 0;
 }
 
 .push__toggle {
@@ -1045,9 +1047,7 @@ body {
     margin: 0.25rem auto 0;
 }
 
-/* .site-foot__admin needs no margin of its own: it sits right after its own
-   <hr class="site-foot__rule">, which already carries the spacing. The
-   tagline and the meta line below it are one visual block with no rule
+/* The tagline and the meta line below it are one visual block with no rule
    between them, just a little air. */
 .site-foot__meta {
     margin-top: 0.4rem;

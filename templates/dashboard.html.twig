@@ -63,7 +63,7 @@
         </h1>
 
         {% import _self as nav %}
-        <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}{{ absences_enabled ? ' / ' ~ t('nav.absences') : '' }}{{ parents_day_enabled ? ' / ' ~ t('nav.parents_day') : '' }}">
+        <nav class="views" aria-label="{{ t('nav.timetable') }}{{ homework_enabled ? ' / ' ~ t('nav.homework') : '' }}{{ exams_enabled ? ' / ' ~ t('nav.exams') : '' }}{{ absences_enabled ? ' / ' ~ t('nav.absences') : '' }}{{ parents_day_enabled ? ' / ' ~ t('nav.parents_day') : '' }}{{ admin_token ? ' / ' ~ t('nav.admin') : '' }}">
             {{ nav.views_link(path('dashboard'), view in ['timetable', 'week'], 'timetable') }}
             {% if homework_enabled %}
                 {{ nav.views_link(path('homework'), view in ['homework', 'homework_done'], 'homework') }}
@@ -76,6 +76,11 @@
             {% endif %}
             {% if parents_day_enabled %}
                 {{ nav.views_link(path('parents_day'), view == 'parents_day', 'parents_day') }}
+            {% endif %}
+            {# /admin renders its own template, so this tab is never the
+               active one - it only ever leads there. #}
+            {% if admin_token %}
+                {{ nav.views_link(path('admin', {token: admin_token}), false, 'admin') }}
             {% endif %}
         </nav>
 
@@ -458,16 +463,12 @@
                  data-denied="{{ t('push.denied') }}"
                  data-failed="{{ t('push.failed') }}"
                  data-unsupported="{{ t('push.unsupported') }}">
+                {# Inside the box so it stays hidden along with it. #}
+                <hr class="site-foot__rule">
                 <button type="button" class="push__toggle" aria-pressed="false">{{ t('push.enable') }}</button>
                 <p class="push__status" aria-live="polite" hidden></p>
             </div>
             <script src="{{ asset('assets/push.js') }}" defer></script>
-        {% endif %}
-        {% if admin_token %}
-            <hr class="site-foot__rule">
-            <p class="site-foot__admin">
-                <a href="{{ path('admin', {token: admin_token}) }}">{{ t('footer.admin') }}</a>
-            </p>
         {% endif %}
         <hr class="site-foot__rule">
         <p class="site-foot__tagline">{{ t('footer.tagline', {heart: '<span class="site-foot__heart" aria-hidden="true">♥</span>'})|raw }}</p>
@@ -486,7 +487,7 @@
 
 {# One main-nav tab. The icon only shows on narrow screens, where .views
    turns into a bottom tab bar; the short label replaces the full one there
-   so five tabs fit side by side on a phone. #}
+   so up to six tabs fit side by side on a phone. #}
 {% macro views_link(href, active, key) %}
     {%- set icons = {
         timetable: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
@@ -494,6 +495,7 @@
         exams: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
         absences: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
         parents_day: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 0 1 5 5"/>',
+        admin: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h10M18 18h2"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="16" cy="18" r="2"/>',
     } -%}
     <a class="views__link{{ active ? ' views__link--active' : '' }}" href="{{ href }}"
        {%- if active %} aria-current="page"{% endif %}>

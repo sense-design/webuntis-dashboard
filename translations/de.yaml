@@ -106,6 +106,7 @@ nav:
     exams: 'Prüfungen'
     absences: 'Fehlzeiten'
     parents_day: 'Sprechtag'
+    admin: 'Einstellungen'
 
 # Shorter labels for the bottom tab bar on narrow screens.
 nav_short:
@@ -114,6 +115,7 @@ nav_short:
     exams: 'Prüfungen'
     absences: 'Fehlzeiten'
     parents_day: 'Sprechtag'
+    admin: 'Optionen'
 
 header:
     pager: 'Tag wechseln'
@@ -124,7 +126,6 @@ footer:
     refresh: 'Jetzt aktualisieren'
     today: 'Zurück zu heute'
     this_week: 'Zurück zu dieser Woche'
-    admin: 'Einstellungen'
     tagline: 'Mit {heart} für Open Source gebaut'
     source: 'Quellcode auf GitHub'
     author: 'von {name}'
